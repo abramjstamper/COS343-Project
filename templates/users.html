@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Users | My Event Manager</title>
+    <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+    <h1>Users</h1>
+    
+    <ul>
+    {% for user in rv %}
+        <li>
+        <ul>
+            <li>id: {{ user[0] }}</li>
+            <li>name: {{ user[2] }}</li>
+            <li>email: {{ user[3] }}</li>
+            <li>email: {{ user[3] }}</li>       
+        </ul>
+        </li>
+    {% endfor %}
+    </ul>
+    </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}New Event Form{% endblock %}
+
+{% block head %}
+    {{ super() }}
+{% endblock %}
+
+{% block content %}
+        <h1>{{ self.title() }}</h1>
+
+    {% from "_formhelpers.html" import render_field %}
+    <form method=POST action="/event/new">
+        <div class="form-group">
+            <dl>
+                {{ form.hidden_tag() }}
+                {{ render_field(form.name, class="form-control") }}
+                {{ render_field(form.description, class="form-control") }}
+                {{ render_field(form.date_start, class="form-control") }}
+                {{ render_field(form.date_end, class="form-control") }}
+                {{ render_field(form.setupStart, class="form-control") }}
+                {{ render_field(form.teardownEnd, class="form-control") }}
+            </dl>
+            <input type=submit value=submit class="btn btn-success">
+        </div>
+    </form>
+{% endblock %}

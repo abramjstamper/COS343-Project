@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Event {{ response.name}}{% endblock %}
+
+{% block head %}
+    {{ super() }}
+{% endblock %}
+
+{% block content %}
+        <h1>{{ self.title() }}</h1>
+
+        <table class="table table-bordered table-striped">
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Event Start Datetime</th>
+                <th>Event Ending Datetime</th>
+                <th>Set Up Start Time</th>
+                <th>Teardown Ending Time</th>
+                <th>Task List</th>
+                <th>Budget</th>
+                <th>Tickets</th>
+            </tr>
+            <tr>
+                <td>{{ response.id }}</td>
+                <td>{{ response.name}}</td>
+                <td>{{ response.description }}</td>
+                <td>{{ response.date_start }}</td>
+                <td>{{ response.date_end }}</td>
+                <td>{{ response.setupStart }}</td>
+                <td>{{ response.teardownEnd }}</td>
+                <td>
+                    <a href="/event/{{response.id}}/task" class="btn btn-primary" role="button">Task</a>
+                </td>
+                <td>
+                    <a href="/event/{{response.id}}/budget" class="btn btn-primary" role="button">Budget</a>
+                </td>
+                <td>
+                    <a href="/event/{{response.id}}/ticket" class="btn btn-primary" role="button">Tickets</a>
+                </td>
+            </tr>
+        </table>
+ {% endblock %}
