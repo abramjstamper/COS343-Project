@@ -11,20 +11,18 @@
         <table class="table table-bordered table-striped">
             <tr>
                 <th>ID</th>
-                <th>Name</th>
-                <th>Date Due</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>assignedTo</th>
+                <th>Total</th>
+                <th>Description</th>
+                <th>isPaid?</th>
+                <th>Vendor ID</th>
             </tr>
-        {% for task in response %}
+        {% for invoice in response %}
             <tr>
-                <td>{{ task.id }}</td>
-                <td>{{ task.name }}</td>
-                <td>{{ task.dueDate }}</td>
-                <td>{{ task.priority }}</td>
-                <td>{{ task.status }}</td>
-                <td>{{ task.assignedTo }}</td>
+                <td>{{ invoice.id }}</td>
+                <td>{{ invoice.total }}</td>
+                <td>{{ invoice.description }}</td>
+                <td>{{ invoice.isPaid }}</td>
+                <td>{{ invoice.vendor_id }}</td>
             </tr>
         {% endfor %}
         </table>

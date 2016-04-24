@@ -23,9 +23,8 @@ mysql.init_app(app)
 # returns budget for a given event_id
 @app.route('/event/<int:event_id>/budget')
 def budget(event_id):
-    current_event = Event.loadEvent(event_id)
-    #need to code get budget
-    response = current_event.getTasksForEvent();
+    current_budget = Budget.loadBudget(event_id)
+    response = current_budget.getAllInvoices();
     return render_template('budget/budget.html', response=response)
 
 ##
@@ -98,6 +97,41 @@ def vendor():
 ##
 ## Models
 ##
+
+# an instance of a budget
+class Budget:
+    id = -1
+    event_id = -1
+    invoices = []
+
+    def __init__(self, id, event_id):
+        self.id = id
+        self.event_id = event_id
+
+    # Event.loadEvent() loads a single event based on the key given, and returns an event object of the specified key
+    @classmethod
+    def loadBudget(cls, key):
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM budget WHERE event_id = %(key)s;", {'key': key})
+        data = cur.fetchone()
+        id = data[0]
+        event_id = data[1]
+        return cls(id, event_id)
+
+    def getAllInvoices(self):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT * FROM invoice WHERE budget_id = %(id)s;',
+            {'id': self.id})
+        data = cursor.fetchall()
+        allInvoices = []
+        for i in data:
+            allInvoices.append(
+                {'event_id': self.event_id, 'id': i[0], 'total': i[1], 'description': i[2], 'isPaid': i[3], 'budget_id': i[4], 'vendor_id': i[5]})
+        if allInvoices == []:
+            return [{'event_id': self.event_id}]
+        return allInvoices
+
 # an instance of an event
 class Event():
     id = -1
@@ -201,8 +235,6 @@ class Vendor:
         cursor.execute('SELECT * FROM event.vendor;')
         data = cursor.fetchall()
         return data
-
-
 
 if __name__ == '__main__':
     app.debug = True
