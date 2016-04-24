@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Vendors{% endblock %}
+
+{% block head %}
+    {{ super() }}
+{% endblock %}
+
+{% block content %}
+        <h1>{{ self.title() }}</h1>
+
+        <table class="table table-bordered table-striped">
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Email</th>
+            </tr>
+        {% for vendor in response %}
+            <tr>
+                <td>{{ vendor[0] }}</td>
+                <td>{{ vendor[1] }}</td>
+                <td>{{ vendor[2] }}</td>
+                <td>{{ vendor[3] }}</td>
+                <td>{{ vendor[4] }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+{% endblock %}
