@@ -11,7 +11,7 @@ app.config["MYSQL_HOST"] = "127.0.0.1"
 app.config["MYSQL_USER"] = "root"
 app.config["MYSQL_PASSWORD"] = ""
 app.config['MYSQL_DB'] = 'event'
-app.config['SECRET_KEY'] = 'test'
+app.config['SECRET_KEY'] = 'very secret-y key value; shhhhh!'
 mysql.init_app(app)
 
 ## API
@@ -81,7 +81,7 @@ def newTask(event_id):
 @app.route('/event/<int:event_id>/ticket')
 def ticket(event_id):
     current_event = Event.loadEvent(event_id)
-    response = current_event.getTasksForEvent();
+    response = current_event.getAllTickets()
     return render_template('ticket/ticket.html', response=response)
 
 ##
@@ -210,6 +210,51 @@ class Event():
         teardownEnd = data[6]
         # print(id, name, date_start, date_end, description, setupStart, teardownEnd);
         return cls(id, name, date_start, date_end, description, setupStart, teardownEnd);
+
+    def getAllTickets(self):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT * FROM ticket WHERE event_id = %(id)s;',
+            {'id': self.id})
+        data = cursor.fetchall()
+        allTickets = []
+        for i in data:
+            allTickets.append(
+                {'event_id': self.id, 'id': i[0], 'price': i[1], 'section': i[2], 'seat_num': i[3], 'isSold': i[4]})
+        if allTickets == []:
+            return [{'event_id': self.id}]
+        return allTickets
+
+class Ticket:
+    id = -1
+    price = 0.00
+    section = -1
+    seat_num = -1
+    isSold = False
+    event_id = -1
+
+    def __init__(self, id, price, section, seat_num, isSold, event_id):
+        self.id = id
+        self.price = price
+        self.section = section
+        self.seat_num = seat_num
+        self.isSold = isSold
+        self.event_id = event_id
+
+    def getAllTickets(self):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT * FROM ticket WHERE event_id = %(id)s;',
+            {'id': self.event_id})
+        data = cursor.fetchall()
+        allTickets = []
+        for i in data:
+            allTickets.append(
+                {'event_id': self.event_id, 'id': i[0], 'price': i[1], 'section': i[2], 'seat_num': i[3], 'isSold': i[4]})
+        if allTickets == []:
+            return [{'event_id': self.event_id}]
+        return allTickets
+
 
 # an instance of a vendor
 class Vendor:
