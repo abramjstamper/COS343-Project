@@ -1,20 +1,18 @@
 from flask import *
 from flask import render_template
-#imports local file
+from flask.ext.mysqldb import MySQL
 from forms import *
-import mysql.connector
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'very secret-y key value; shhhhh!'
-
-def db_connect():
-    # Update to correspond to your MySQL server and schema.
-    conn = mysql.connector.connect(user='root', password='',
-                                   host='127.0.0.1', database='event')
-    return conn
+mysql = MySQL()
 
 # configuration settings
+app.config["MYSQL_HOST"] = "127.0.0.1"
+app.config["MYSQL_USER"] = "root"
+app.config["MYSQL_PASSWORD"] = ""
+app.config['MYSQL_DB'] = 'event'
 app.config['SECRET_KEY'] = 'very secret-y key value; shhhhh!'
+mysql.init_app(app)
 
 ## API
 
@@ -52,7 +50,7 @@ def newEvent():
     if request.method == 'POST' and form.validate():
         myNewEvent = Event.createEvent(form.name.data, form.description.data, form.date_start, form.date_end.data, form.setupStart.data, form.teardownEnd.data)
         flash('New Event Created')
-        return redirect(url_for('event_show(myNewEvent.id)'))
+        #return redirect(url_for('event_show(myNewEvent.id)'))
 
     return render_template('event/new.html', form=form)
 
@@ -113,18 +111,15 @@ class Budget:
     # Event.loadEvent() loads a single event based on the key given, and returns an event object of the specified key
     @classmethod
     def loadBudget(cls, key):
-        conn = db_connect()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM budget WHERE event_id = %(key)s;", {'key': key})
-        data = cursor.fetchone()
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM budget WHERE event_id = %(key)s;", {'key': key})
+        data = cur.fetchone()
         id = data[0]
         event_id = data[1]
-        conn.close()
         return cls(id, event_id)
 
     def getAllInvoices(self):
-        conn = db_connect()
-        cursor = conn.cursor()
+        cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT * FROM invoice WHERE budget_id = %(id)s;',
             {'id': self.id})
@@ -135,7 +130,6 @@ class Budget:
                 {'event_id': self.event_id, 'id': i[0], 'total': i[1], 'description': i[2], 'isPaid': i[3], 'budget_id': i[4], 'vendor_id': i[5]})
         if allInvoices == []:
             return [{'event_id': self.event_id}]
-        conn.close()
         return allInvoices
 
 # an instance of an event
@@ -160,8 +154,7 @@ class Event():
 
     # retrieves the tasks for a given event instance and puts them in a dictionary
     def getTasksForEvent(self):
-        conn = db_connect()
-        cursor = conn.cursor()
+        cursor = mysql.connection.cursor()
         cursor.execute('SELECT event.id, task.id, task.priority, task.name, task.dateDue, task.status, task.assignedTo FROM event.task JOIN event.event ON event_id = event.id WHERE event_id = %(id)s;', {'id' : self.id})
         data = cursor.fetchall()
         allTasks = []
@@ -169,7 +162,6 @@ class Event():
             allTasks.append({'event_id':i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dateDue': i[4], 'status': i[5], 'assignedTo': i[6]})
         if allTasks == []:
             return [{'event_id' : self.id}]
-        conn.close()
         return allTasks
 
     # creates a task for a given event instance - To be implemented
@@ -178,20 +170,16 @@ class Event():
         params = {"id": id, "name": name, "dueDate": dueDate, "priority": priority, "status": status,
                   "user_assign": "admin@admin.com", "event_id": self.id}
         query = "INSERT INTO task (priority, name, dateDue, status, assignedTo, event_id) VALUES (%(priority)s, %(name)s, %(dateDue)s, %(status)s, %(assignedTo)s, %(event_id)s);"
-        conn = db_connect()
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        data = cursor.fetchall()
-        conn.close()
+        cur = mysql.connection.cursor()
+        cur.execute(query, params)
+        data = cur.fetchall()
 
     # return all events
     @staticmethod
     def getAllEvents():
-        conn = db_connect()
-        cursor = conn.cursor()
+        cursor = mysql.connection.cursor()
         cursor.execute('SELECT * FROM event.event;')
         data = cursor.fetchall()
-        conn.close()
         return data
 
     # Event.createEvent() creates an event in the database, and returns an event object
@@ -200,7 +188,7 @@ class Event():
         params = {"name": name, "date_start": date_start, "date_end": date_end, "description": description,
                   "setup_start": setup_start, "teardown_end": teardown_end}
         query = "INSERT INTO event (name, date_start, date_end, description, setup_start, teardown_end) VALUES (%(name)s, %(date_start)s, %(date_end)s, %(description)s, %(setup_start)s, %(teardown_end)s);"
-        conn = db_connect()
+        conn = mysql.connection
         cursor = conn.cursor()
         cursor.execute(query, params)
         conn.commit()
@@ -212,10 +200,9 @@ class Event():
     @classmethod
     def loadEvent(cls, key):
         # select statment
-        conn = db_connect()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM event.event WHERE id = %(key)s;", {'key' : key})
-        data = cursor.fetchone()
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM event.event WHERE id = %(key)s;", {'key' : key})
+        data = cur.fetchone()
         id = data[0]
         name = data[1]
         date_start = data[2]
@@ -223,13 +210,11 @@ class Event():
         description = data[4]
         setupStart = data[5]
         teardownEnd = data[6]
-        conn.close()
         # print(id, name, date_start, date_end, description, setupStart, teardownEnd);
         return cls(id, name, date_start, date_end, description, setupStart, teardownEnd);
 
     def getAllTickets(self):
-        conn = db_connect()
-        cursor = conn.cursor()
+        cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT * FROM ticket WHERE event_id = %(id)s;',
             {'id': self.id})
@@ -240,7 +225,6 @@ class Event():
                 {'event_id': self.id, 'id': i[0], 'price': i[1], 'section': i[2], 'seat_num': i[3], 'isSold': i[4]})
         if allTickets == []:
             return [{'event_id': self.id}]
-        conn.close()
         return allTickets
 
 class Ticket:
@@ -260,8 +244,7 @@ class Ticket:
         self.event_id = event_id
 
     def getAllTickets(self):
-        conn = db_connect()
-        cursor = conn.cursor()
+        cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT * FROM ticket WHERE event_id = %(id)s;',
             {'id': self.event_id})
@@ -272,7 +255,6 @@ class Ticket:
                 {'event_id': self.event_id, 'id': i[0], 'price': i[1], 'section': i[2], 'seat_num': i[3], 'isSold': i[4]})
         if allTickets == []:
             return [{'event_id': self.event_id}]
-        conn.close()
         return allTickets
 
 
@@ -296,11 +278,9 @@ class Vendor:
     # return all vendors
     @staticmethod
     def getAllVendors():
-        conn = db_connect()
-        cursor = conn.cursor()
+        cursor = mysql.connection.cursor()
         cursor.execute('SELECT * FROM event.vendor;')
         data = cursor.fetchall()
-        conn.close()
         return data
 
 if __name__ == '__main__':
