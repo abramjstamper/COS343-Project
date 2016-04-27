@@ -50,7 +50,7 @@ def newEvent():
     if request.method == 'POST' and form.validate():
         myNewEvent = Event.createEvent(form.name.data, form.description.data, form.date_start, form.date_end.data, form.setupStart.data, form.teardownEnd.data)
         flash('New Event Created')
-        #return redirect(url_for('event_show(myNewEvent.id)'))
+        return redirect(url_for('event_show(myNewEvent.id)'))
 
     return render_template('event/new.html', form=form)
 
