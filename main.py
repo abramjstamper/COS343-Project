@@ -76,7 +76,7 @@ def newTask(event_id):
         thisNewTask = current_event.createTaskForEvent(form.name.data, form.dueDate.data, form.priority.data, form.status.data, "admin@admin.com")
         flash('New Task Created')
         return redirect(url_for('task', event_id=current_event.id))
-    return render_template('task/new.html', form=form)
+    return render_template('task/new.html', action='new', form=form)
 
 ##
 ## Ticket
@@ -87,6 +87,8 @@ def newTask(event_id):
 def ticket(event_id):
     current_event = Event.loadEvent(event_id)
     response = current_event.getAllTickets()
+    response.append({"totalSold": Ticket.getTotalCountSold(event_id)})
+    response.append({"totalSold": Ticket.getTotalPriceSold(event_id)})
     return render_template('ticket/ticket.html', response=response)
 
 ##
@@ -270,6 +272,24 @@ class Ticket:
         if allTickets == []:
             return [{'event_id': self.event_id}]
         return allTickets
+
+    @staticmethod
+    def getTotalPriceSold(event_id):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT SUM(price) FROM ticket WHERE event_id = %(id)s AND isSold = 1;',
+            {'id': event_id})
+        data = cursor.fetchone()
+        return data[0]
+
+    @staticmethod
+    def getTotalCountSold(event_id):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT count(isSold) FROM ticket WHERE event_id = %(id)s AND isSold = 1;',
+            {'id': event_id})
+        data = cursor.fetchone()
+        return data[0]
 
 
 # an instance of a vendor

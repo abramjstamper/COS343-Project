@@ -19,5 +19,3 @@ class NewTask(Form):
     priority = TextField('Priority')
     status = TextField('Status')
     assignTo = TextField('User Assigned To')
-
-    #validators=[DateRange(min=datetime.now())]

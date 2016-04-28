@@ -16,7 +16,7 @@
                 <th>Seat Num</th>
                 <th>isSold</th>
             </tr>
-        {% for ticket in response %}
+        {% for ticket in response[:-2] %}
             <tr>
                 <td>{{ ticket.id }}</td>
                 <td>{{ ticket.price }}</td>
@@ -25,5 +25,12 @@
                 <td>{{ ticket.isSold }}</td>
             </tr>
         {% endfor %}
+            <tr>
+                <td></td>
+                <td>{{ response[-2].totalSold }}</td>
+                <td>Price Total Sold</td>
+                <td>Number Total Sold</td>
+                <td>{{ response[-1].totalSold }}</td>
+            </tr>
         </table>
 {% endblock %}
