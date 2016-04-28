@@ -16,7 +16,7 @@
                 <th>isPaid?</th>
                 <th>Vendor ID</th>
             </tr>
-        {% for invoice in response %}
+        {% for invoice in response[:-2] %}
             <tr>
                 <td>{{ invoice.id }}</td>
                 <td>{{ invoice.total }}</td>
@@ -25,5 +25,12 @@
                 <td>{{ invoice.vendor_id }}</td>
             </tr>
         {% endfor %}
+            <tr>
+                <td></td>
+                <td>{{ response[-1].totalSold }}</td>
+                <td>Price Total Sold</td>
+                <td>Number Total Sold</td>
+                <td>{{ response[-2].totalSold }}</td>
+            </tr>
         </table>
 {% endblock %}

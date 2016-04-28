@@ -25,6 +25,8 @@ mysql.init_app(app)
 def budget(event_id):
     current_budget = Budget.loadBudget(event_id)
     response = current_budget.getAllInvoices();
+    response.append({"totalSold": Budget.getTotalCountPaid(event_id)})
+    response.append({"totalSold": Budget.getTotalExpenses(event_id)})
     return render_template('budget/budget.html', response=response)
 
 ##
@@ -157,6 +159,24 @@ class Budget:
         if allInvoices == []:
             return [{'event_id': self.event_id}]
         return allInvoices
+
+    @staticmethod
+    def getTotalExpenses(event_id):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT SUM(total) FROM invoice WHERE budget_id = %(id)s AND isPaid = 1;',
+            {'id': event_id})
+        data = cursor.fetchone()
+        return data[0]
+
+    @staticmethod
+    def getTotalCountPaid(event_id):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT count(isPaid) FROM invoice WHERE budget_id = %(id)s AND isPaid = 1;',
+            {'id': event_id})
+        data = cursor.fetchone()
+        return data[0]
 
 # an instance of an event
 class Event():
