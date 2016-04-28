@@ -15,9 +15,9 @@ class NewEvent(Form):
 
 class NewTask(Form):
     name = TextField('Task Name')
-    dateDue = TextField('Due Date')
-    priority = NumberInput()
-    status = TextField('status')
-    assignTo = TextField('assignedTo')
+    dueDate = DateTimeField('Due Date')
+    priority = TextField('Priority')
+    status = TextField('Status')
+    assignTo = TextField('User Assigned To')
 
     #validators=[DateRange(min=datetime.now())]

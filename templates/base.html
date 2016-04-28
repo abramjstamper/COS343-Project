@@ -11,7 +11,7 @@
 <body>
     <div class="btn-toolbar" role="toolbar">
         <div class="btn-group btn-group-lg btn-group-justified" role="btn-group">
-            <a class="btn btn-default " href="/event" role="button">All Events</a>
+            <a class="btn btn-default" href="/event" role="button">All Events</a>
             <a class="btn btn-default " href="/event/new" role="button">New Event</a>
             <a class="btn btn-default " href="/vendor" role="button">Vendors</a>
             <a class="btn btn-default " href="/user" role="button">Users</a>
@@ -19,8 +19,14 @@
     </div>
 
     <div class="container">
+        {% with message = get_flashed_messages() %}
+            {% if message %}
+                <div class="alert alert-success">
+                    {{ message[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
         {% block content %}
-
         {% endblock %}
     </div>
 </body>

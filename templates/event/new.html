@@ -9,7 +9,7 @@
         <h1>{{ self.title() }}</h1>
 
     {% from "_formhelpers.html" import render_field %}
-    <form method=POST action="/event/new">
+    <form method=POST action="{{ request.path }}">
         <div class="form-group">
             <dl>
                 {{ form.hidden_tag() }}

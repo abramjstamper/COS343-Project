@@ -48,9 +48,11 @@ def event_show(event_id):
 def newEvent():
     form = NewEvent(request.form)
     if request.method == 'POST' and form.validate():
-        myNewEvent = Event.createEvent(form.name.data, form.description.data, form.date_start, form.date_end.data, form.setupStart.data, form.teardownEnd.data)
+        thisNewEvent = Event.createEvent(form.name.data, form.description.data, form.date_start, form.date_end.data,
+                                         form.setupStart.data, form.teardownEnd.data)
         flash('New Event Created')
-        return redirect(url_for('event_show(myNewEvent.id)'))
+        newEvent_id = int(thisNewEvent.id)
+        return redirect(url_for('event_show', event_id=(newEvent_id)))
 
     return render_template('event/new.html', form=form)
 
@@ -66,12 +68,15 @@ def task(event_id):
     return render_template('task/task.html', response=response)
 
 # creates a new task fo a given event_id
-@app.route('/event/<int:event_id>/task/new')
+@app.route('/event/<int:event_id>/task/new', methods=['GET', 'POST'])
 def newTask(event_id):
     current_event = Event.loadEvent(event_id)
     form = NewTask(request.form)
-    response = current_event.getTasksForEvent();
-    return render_template('task/new.html', response=response)
+    if request.method == 'POST' and form.validate():
+        thisNewTask = current_event.createTaskForEvent(form.name.data, form.dueDate.data, form.priority.data, form.status.data, "admin@admin.com")
+        flash('New Task Created')
+        return redirect(url_for('task', event_id=current_event.id))
+    return render_template('task/new.html', form=form)
 
 ##
 ## Ticket
@@ -141,6 +146,7 @@ class Event():
     description = ""
     setupStart = ""
     teardownEnd = ""
+    tasks = []
 
     # intializes variables
     def __init__(self, id, name, date_start, date_end, description, setupStart, teardownEnd):
@@ -159,25 +165,32 @@ class Event():
         data = cursor.fetchall()
         allTasks = []
         for i in data:
-            allTasks.append({'event_id':i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dateDue': i[4], 'status': i[5], 'assignedTo': i[6]})
+            allTasks.append({'event_id':i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dueDate': i[4], 'status': i[5], 'assignedTo': i[6]})
         if allTasks == []:
             return [{'event_id' : self.id}]
+        else:
+            self.tasks = allTasks
         return allTasks
 
     # creates a task for a given event instance - To be implemented
-    def createTaskForEvent(self, id, name, dueDate, priority, status):
+    def createTaskForEvent(self, name, dueDate, priority, status, user):
         #hardcoded params - user_assign - admin@admin.com
-        params = {"id": id, "name": name, "dueDate": dueDate, "priority": priority, "status": status,
-                  "user_assign": "admin@admin.com", "event_id": self.id}
-        query = "INSERT INTO task (priority, name, dateDue, status, assignedTo, event_id) VALUES (%(priority)s, %(name)s, %(dateDue)s, %(status)s, %(assignedTo)s, %(event_id)s);"
-        cur = mysql.connection.cursor()
-        cur.execute(query, params)
-        data = cur.fetchall()
+        params = {"name": name, "dueDate": dueDate, "priority": priority, "status": status,
+                  "user_assign": user, "event_id": self.id}
+        query = "INSERT INTO task (priority, name, dateDue, status, assignedTo, event_id) VALUES (%(priority)s, %(name)s, %(dueDate)s, %(status)s, %(user_assign)s, %(event_id)s);"
+        conn = mysql.connection
+        cursor = conn.cursor()
+        # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
+        cursor.execute(query, params)
+        conn.commit()
+        id = cursor.lastrowid
+        self.tasks.append({'event_id':self.id, 'id': id, 'priority': priority, 'name': name, 'dateDue': dueDate, 'status': status, 'assignedTo': user})
 
     # return all events
     @staticmethod
     def getAllEvents():
-        cursor = mysql.connection.cursor()
+        conn = mysql.connection
+        cursor = conn.cursor()
         cursor.execute('SELECT * FROM event.event;')
         data = cursor.fetchall()
         return data
@@ -190,9 +203,10 @@ class Event():
         query = "INSERT INTO event (name, date_start, date_end, description, setup_start, teardown_end) VALUES (%(name)s, %(date_start)s, %(date_end)s, %(description)s, %(setup_start)s, %(teardown_end)s);"
         conn = mysql.connection
         cursor = conn.cursor()
+        #if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
         cursor.execute(query, params)
         conn.commit()
-        conn.close()
+        id = cursor.lastrowid
 
         return cls(id, name, date_start, date_end, description, setup_start, teardown_end)
 

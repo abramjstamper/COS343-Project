@@ -9,15 +9,15 @@
         <h1>{{ self.title() }}</h1>
 
     {% from "_formhelpers.html" import render_field %}
-    <form method=post action="/task/new">
+    <form method=POST action="{{ request.path }}">
         <div class="form-group">
             <dl>
+                {{ form.hidden_tag() }}
                 {{ render_field(form.name, class="form-control") }}
-                {{ render_field(form.description, class="form-control") }}
-                {{ render_field(form.date_start, class="form-control") }}
-                {{ render_field(form.date_end, class="form-control") }}
-                {{ render_field(form.setupStart, class="form-control") }}
-                {{ render_field(form.teardownEnd, class="form-control") }}
+                {{ render_field(form.priority, class="form-control") }}
+                {{ render_field(form.status, class="form-control") }}
+                {{ render_field(form.dueDate, class="form-control") }}
+                {{ render_field(form.assignTo, class="form-control") }}
             </dl>
             <input type=submit value=submit class="btn btn-success">
         </div>
