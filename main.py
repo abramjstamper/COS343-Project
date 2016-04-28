@@ -48,13 +48,32 @@ def event_show(event_id):
 def newEvent():
     form = NewEvent(request.form)
     if request.method == 'POST' and form.validate():
-        thisNewEvent = Event.createEvent(form.name.data, form.description.data, form.date_start, form.date_end.data,
+        thisNewEvent = Event.createEvent(form.name.data, form.description.data, form.date_start.data, form.date_end.data,
                                          form.setupStart.data, form.teardownEnd.data)
         flash('New Event Created')
         newEvent_id = int(thisNewEvent.id)
         return redirect(url_for('event_show', event_id=(newEvent_id)))
 
     return render_template('event/new.html', form=form)
+
+@app.route('/event/<int:event_id>/edit', methods=['GET', 'POST'])
+def editEvent(event_id):
+    form = NewEvent(request.form)
+    current_event = Event.loadEvent(event_id)
+    form.name.data = current_event.name
+    form.description.data = current_event.description
+    form.date_start.data = current_event.date_start
+    form.date_end.data = current_event.date_end
+    form.setupStart.data = current_event.setupStart
+    form.teardownEnd.data = current_event.teardownEnd
+    if request.method == 'POST' and form.validate():
+        thisNewEvent = Event.updateEvent(current_event.id, form.name.data, form.description.data, form.date_start.data, form.date_end.data,
+                                         form.setupStart.data, form.teardownEnd.data)
+        flash('Event ' + str(current_event.id) +' Updated')
+        newEvent_id = int(current_event.id)
+        return redirect(url_for('event_show', event_id=newEvent_id))
+
+    return render_template('event/edit.html', form=form)
 
 ##
 ## Task
@@ -76,7 +95,7 @@ def newTask(event_id):
         thisNewTask = current_event.createTaskForEvent(form.name.data, form.dueDate.data, form.priority.data, form.status.data, "admin@admin.com")
         flash('New Task Created')
         return redirect(url_for('task', event_id=current_event.id))
-    return render_template('task/new.html', action='new', form=form)
+    return render_template('task/new.html', form=form)
 
 ##
 ## Ticket
@@ -210,6 +229,18 @@ class Event():
         conn.commit()
         id = cursor.lastrowid
 
+        return cls(id, name, date_start, date_end, description, setup_start, teardown_end)
+
+    @classmethod
+    def updateEvent(cls, event_id, name, description, date_start, date_end, setup_start, teardown_end):
+        params = {"name": name, "date_start": date_start, "date_end": date_end, "description": description,
+                  "setup_start": setup_start, "teardown_end": teardown_end, "event_id": event_id}
+        query = "UPDATE event SET name= %(name)s, date_start= %(date_start)s, date_end= %(date_end)s, description= %(description)s, setup_start= %(setup_start)s, teardown_end= %(teardown_end)s WHERE id= %(event_id)s;"
+        conn = mysql.connection
+        cursor = conn.cursor()
+        # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
+        print(cursor.execute(query, params))
+        conn.commit()
         return cls(id, name, date_start, date_end, description, setup_start, teardown_end)
 
     # Event.loadEvent() loads a single event based on the key given, and returns an event object of the specified key
