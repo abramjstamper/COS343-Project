@@ -77,16 +77,30 @@ def newEvent():
         return redirect(url_for('event_show', event_id=(newEvent_id)))
     return render_template('event/new.html', form=form)
 
-#Retrevies all the tasks for a given event_id
-@app.route('/event/<int:event_id>/task')
-def task(event_id):
-    current_event = Event.loadEvent(event_id)
-    response = current_event.getTasksForEvent();
-    return render_template('task/task.html', response=response)
-
 ##
 ## Task
 ##
+
+# edits a task for a given event_id and given task_id
+@app.route('/event/<int:event_id>/task/<int:task_id>/edit', methods=['GET', 'POST'])
+def editTask(event_id, task_id):
+    form = NewEvent(request.form)
+    if request.method == 'GET':
+        current_event = Event.loadEvent(event_id)
+        form.name.data = current_event.name
+        form.description.data = current_event.description
+        form.date_start.data = current_event.date_start
+        form.date_end.data = current_event.date_end
+        form.setupStart.data = current_event.setupStart
+        form.teardownEnd.data = current_event.teardownEnd
+    if request.method == 'POST' and form.validate():
+        thisNewEvent = Event.updateEvent(event_id, form.name.data, form.description.data, form.date_start.data,
+                                         form.date_end.data,
+                                         form.setupStart.data, form.teardownEnd.data)
+        flash('Event ' + str(event_id) + ' Updated')
+        newEvent_id = int(event_id)
+        return redirect(url_for('event_show', event_id=event_id))
+    return render_template('event/edit.html', form=form)
 
 # returns the tasks for a given event_id
 @app.route('/event/<int:event_id>/task/new', methods=['GET', 'POST'])
@@ -94,10 +108,17 @@ def newTask(event_id):
     current_event = Event.loadEvent(event_id)
     form = NewTask(request.form)
     if request.method == 'POST' and form.validate():
-        thisNewTask = current_event.createTaskForEvent(form.name.data, form.dueDate.data, form.priority.data, form.status.data, "admin@admin.com")
+        thisNewTask = Task.createTaskForEvent(form.name.data, form.dueDate.data, form.priority.data, form.status.data, "admin@admin.com", event_id)
         flash('New Task Created')
         return redirect(url_for('task', event_id=current_event.id))
     return render_template('task/new.html', form=form)
+
+# retrevies all the tasks for a given event_id
+@app.route('/event/<int:event_id>/task')
+def task(event_id):
+    current_event = Event.loadEvent(event_id)
+    response = Task.getTasksForEvent(event_id)
+    return render_template('task/task.html', response=response)
 
 ##
 ## Ticket
@@ -107,7 +128,7 @@ def newTask(event_id):
 @app.route('/event/<int:event_id>/ticket')
 def ticket(event_id):
     current_event = Event.loadEvent(event_id)
-    response = current_event.getAllTickets()
+    response = Ticket.getAllTickets(event_id)
     response.append({"totalSold": Ticket.getTotalCountSold(event_id)})
     response.append({"totalSold": Ticket.getTotalPriceSold(event_id)})
     return render_template('ticket/ticket.html', response=response)
@@ -187,7 +208,6 @@ class Event():
     description = ""
     setupStart = ""
     teardownEnd = ""
-    tasks = []
 
     # intializes variables
     def __init__(self, id, name, date_start, date_end, description, setupStart, teardownEnd):
@@ -198,34 +218,6 @@ class Event():
         self.date_end = date_end
         self.setupStart = setupStart
         self.teardownEnd = teardownEnd
-
-    # retrieves the tasks for a given event instance and puts them in a dictionary
-    def getTasksForEvent(self):
-        cursor = mysql.connection.cursor()
-        cursor.execute('SELECT event.id, task.id, task.priority, task.name, task.dateDue, task.status, task.assignedTo FROM event.task JOIN event.event ON event_id = event.id WHERE event_id = %(id)s;', {'id' : self.id})
-        data = cursor.fetchall()
-        allTasks = []
-        for i in data:
-            allTasks.append({'event_id':i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dueDate': i[4], 'status': i[5], 'assignedTo': i[6]})
-        if allTasks == []:
-            return [{'event_id' : self.id}]
-        else:
-            self.tasks = allTasks
-        return allTasks
-
-    # creates a task for a given event instance - To be implemented
-    def createTaskForEvent(self, name, dueDate, priority, status, user):
-        #hardcoded params - user_assign - admin@admin.com
-        params = {"name": name, "dueDate": dueDate, "priority": priority, "status": status,
-                  "user_assign": user, "event_id": self.id}
-        query = "INSERT INTO task (priority, name, dateDue, status, assignedTo, event_id) VALUES (%(priority)s, %(name)s, %(dueDate)s, %(status)s, %(user_assign)s, %(event_id)s);"
-        conn = mysql.connection
-        cursor = conn.cursor()
-        # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
-        cursor.execute(query, params)
-        conn.commit()
-        id = cursor.lastrowid
-        self.tasks.append({'event_id':self.id, 'id': id, 'priority': priority, 'name': name, 'dateDue': dueDate, 'status': status, 'assignedTo': user})
 
     # return all events
     @staticmethod
@@ -280,19 +272,71 @@ class Event():
         # print(id, name, date_start, date_end, description, setupStart, teardownEnd);
         return cls(id, name, date_start, date_end, description, setupStart, teardownEnd);
 
-    def getAllTickets(self):
+    #depercated and moved function to Ticket class
+    # def getAllTickets(self):
+    #     cursor = mysql.connection.cursor()
+    #     cursor.execute(
+    #         'SELECT * FROM ticket WHERE event_id = %(id)s;',
+    #         {'id': self.id})
+    #     data = cursor.fetchall()
+    #     allTickets = []
+    #     for i in data:
+    #         allTickets.append(
+    #             {'event_id': self.id, 'id': i[0], 'price': i[1], 'section': i[2], 'seat_num': i[3], 'isSold': i[4]})
+    #     if allTickets == []:
+    #         return [{'event_id': self.id}]
+    #     return allTickets
+
+###
+### Task
+###
+
+class Task:
+    id = -1
+    priority = -1
+    name = ""
+    dateDue = ""
+    status = ""
+    assignedTo = ""
+    event_id = -1
+
+    def __init__(self, id, priority, name, dateDue, status, assignedTo, event_id):
+        self.id = id
+        self.priority = priority
+        self.name = name
+        self.dateDue = dateDue
+        self.status = status
+        self.assignedTo = assignedTo
+        self.event_id = event_id
+
+    # creates a task for a given event instance - To be implemented
+    @classmethod
+    def createTaskForEvent(cls, name, dueDate, priority, status, user, event_id):
+        #hardcoded params - user_assign - admin@admin.com
+        params = {"name": name, "dueDate": dueDate, "priority": priority, "status": status,
+                  "user_assign": user, "event_id": event_id}
+        query = "INSERT INTO task (priority, name, dateDue, status, assignedTo, event_id) VALUES (%(priority)s, %(name)s, %(dueDate)s, %(status)s, %(user_assign)s, %(event_id)s);"
+        conn = mysql.connection
+        cursor = conn.cursor()
+        # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
+        cursor.execute(query, params)
+        conn.commit()
+        id = cursor.lastrowid
+
+        return cls(id, priority, name, dueDate, status, user, event_id)
+
+    # retrieves the tasks for a given event instance and puts them in a dictionary
+    @staticmethod
+    def getTasksForEvent(event_id):
         cursor = mysql.connection.cursor()
-        cursor.execute(
-            'SELECT * FROM ticket WHERE event_id = %(id)s;',
-            {'id': self.id})
+        cursor.execute('SELECT event.id, task.id, task.priority, task.name, task.dateDue, task.status, task.assignedTo FROM event.task JOIN event.event ON event_id = event.id WHERE event_id = %(id)s;', {'id' : event_id})
         data = cursor.fetchall()
-        allTickets = []
+        allTasks = []
         for i in data:
-            allTickets.append(
-                {'event_id': self.id, 'id': i[0], 'price': i[1], 'section': i[2], 'seat_num': i[3], 'isSold': i[4]})
-        if allTickets == []:
-            return [{'event_id': self.id}]
-        return allTickets
+            allTasks.append({'event_id':i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dueDate': i[4], 'status': i[5], 'assignedTo': i[6]})
+        if allTasks == []:
+            return [{'event_id' : event_id}]
+        return allTasks
 
 class Ticket:
     id = -1
@@ -310,18 +354,19 @@ class Ticket:
         self.isSold = isSold
         self.event_id = event_id
 
-    def getAllTickets(self):
+    @staticmethod
+    def getAllTickets(event_id):
         cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT * FROM ticket WHERE event_id = %(id)s;',
-            {'id': self.event_id})
+            {'id': event_id})
         data = cursor.fetchall()
         allTickets = []
         for i in data:
             allTickets.append(
-                {'event_id': self.event_id, 'id': i[0], 'price': i[1], 'section': i[2], 'seat_num': i[3], 'isSold': i[4]})
+                {'event_id': event_id, 'id': i[0], 'price': i[1], 'section': i[2], 'seat_num': i[3], 'isSold': i[4]})
         if allTickets == []:
-            return [{'event_id': self.event_id}]
+            return [{'event_id': event_id}]
         return allTickets
 
     @staticmethod
