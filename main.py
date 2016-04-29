@@ -33,15 +33,35 @@ def budget(event_id):
 ## Event
 ##
 
+# edits an event based on a given event_id
+@app.route('/event/<int:event_id>/edit', methods=['GET', 'POST'])
+def editEvent(event_id):
+    form = NewEvent(request.form)
+    if request.method == 'GET':
+        current_event = Event.loadEvent(event_id)
+        form.name.data = current_event.name
+        form.description.data = current_event.description
+        form.date_start.data = current_event.date_start
+        form.date_end.data = current_event.date_end
+        form.setupStart.data = current_event.setupStart
+        form.teardownEnd.data = current_event.teardownEnd
+    if request.method == 'POST' and form.validate():
+        thisNewEvent = Event.updateEvent(event_id, form.name.data, form.description.data, form.date_start.data, form.date_end.data,
+                                         form.setupStart.data, form.teardownEnd.data)
+        flash('Event ' + str(event_id) +' Updated')
+        newEvent_id = int(event_id)
+        return redirect(url_for('event_show', event_id=event_id))
+    return render_template('event/edit.html', form=form)
+
 # returns all events from the database - not user specific (yet)
 @app.route('/event')
-def event():
+def all_events():
     response = Event.getAllEvents()
     return render_template('event/event.html', response=response)
 
 # returns a single event page for a given event_id
 @app.route('/event/<int:event_id>')
-def event_show(event_id):
+def event(event_id):
     response = Event.loadEvent(event_id)
     return render_template('event/show.html', response=response)
 
@@ -55,40 +75,20 @@ def newEvent():
         flash('New Event Created')
         newEvent_id = int(thisNewEvent.id)
         return redirect(url_for('event_show', event_id=(newEvent_id)))
-
     return render_template('event/new.html', form=form)
 
-@app.route('/event/<int:event_id>/edit', methods=['GET', 'POST'])
-def editEvent(event_id):
-    form = NewEvent(request.form)
-    current_event = Event.loadEvent(event_id)
-    form.name.data = current_event.name
-    form.description.data = current_event.description
-    form.date_start.data = current_event.date_start
-    form.date_end.data = current_event.date_end
-    form.setupStart.data = current_event.setupStart
-    form.teardownEnd.data = current_event.teardownEnd
-    if request.method == 'POST' and form.validate():
-        thisNewEvent = Event.updateEvent(current_event.id, form.name.data, form.description.data, form.date_start.data, form.date_end.data,
-                                         form.setupStart.data, form.teardownEnd.data)
-        flash('Event ' + str(current_event.id) +' Updated')
-        newEvent_id = int(current_event.id)
-        return redirect(url_for('event_show', event_id=newEvent_id))
-
-    return render_template('event/edit.html', form=form)
-
-##
-## Task
-##
-
-# returns the tasks for a given event_id
+#Retrevies all the tasks for a given event_id
 @app.route('/event/<int:event_id>/task')
 def task(event_id):
     current_event = Event.loadEvent(event_id)
     response = current_event.getTasksForEvent();
     return render_template('task/task.html', response=response)
 
-# creates a new task fo a given event_id
+##
+## Task
+##
+
+# returns the tasks for a given event_id
 @app.route('/event/<int:event_id>/task/new', methods=['GET', 'POST'])
 def newTask(event_id):
     current_event = Event.loadEvent(event_id)
