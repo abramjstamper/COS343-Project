@@ -84,23 +84,23 @@ def newEvent():
 # edits a task for a given event_id and given task_id
 @app.route('/event/<int:event_id>/task/<int:task_id>/edit', methods=['GET', 'POST'])
 def editTask(event_id, task_id):
-    form = NewEvent(request.form)
+    form = NewTask(request.form)
     if request.method == 'GET':
         current_event = Event.loadEvent(event_id)
-        form.name.data = current_event.name
-        form.description.data = current_event.description
-        form.date_start.data = current_event.date_start
-        form.date_end.data = current_event.date_end
-        form.setupStart.data = current_event.setupStart
-        form.teardownEnd.data = current_event.teardownEnd
+        current_task = Task.loadTask(task_id)
+        form.priority.data = current_task.priority
+        form.name.data = current_task.name
+        form.dueDate.data = current_task.dateDue
+        form.status.data = current_task.status
+        form.assignTo.data = current_task.assignedTo
     if request.method == 'POST' and form.validate():
-        thisNewEvent = Event.updateEvent(event_id, form.name.data, form.description.data, form.date_start.data,
-                                         form.date_end.data,
-                                         form.setupStart.data, form.teardownEnd.data)
-        flash('Event ' + str(event_id) + ' Updated')
-        newEvent_id = int(event_id)
-        return redirect(url_for('event_show', event_id=event_id))
-    return render_template('event/edit.html', form=form)
+        thisUpdatedTask = Task.updateTask(task_id, form.priority.data, form.name.data, form.dueDate.data,
+                                         form.status.data,
+                                         form.assignTo.data, event_id)
+        flash('Task ' + str(task_id) + ' Updated')
+        updatedTask_id = int(task_id)
+        return redirect(url_for('task', event_id=event_id))
+    return render_template('task/edit.html', form=form)
 
 # returns the tasks for a given event_id
 @app.route('/event/<int:event_id>/task/new', methods=['GET', 'POST'])
@@ -147,7 +147,10 @@ def vendor():
 ## Models
 ##
 
-# an instance of a budget
+###
+### Budget/Invoice
+###
+
 class Budget:
     id = -1
     event_id = -1
@@ -199,7 +202,10 @@ class Budget:
         data = cursor.fetchone()
         return data[0]
 
-# an instance of an event
+###
+### Event
+###
+
 class Event():
     id = -1
     name = ""
@@ -309,6 +315,21 @@ class Task:
         self.assignedTo = assignedTo
         self.event_id = event_id
 
+    @classmethod
+    def loadTask(cls, task_id):
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM task WHERE id = %(key)s;", {'key': task_id})
+        data = cur.fetchone()
+        id = data[0]
+        priority = data[1]
+        name = data[2]
+        dateDue = data[3]
+        status = data[4]
+        assignedTo = data[5]
+        event_id = data[6]
+        return cls(id, priority, name, dateDue, status, assignedTo, event_id)
+
+
     # creates a task for a given event instance - To be implemented
     @classmethod
     def createTaskForEvent(cls, name, dueDate, priority, status, user, event_id):
@@ -325,6 +346,18 @@ class Task:
 
         return cls(id, priority, name, dueDate, status, user, event_id)
 
+    @classmethod
+    def updateTask(cls, task_id, priority, name, dateDue, status, assignedTo, event_id):
+        params = {"task_id": task_id, "priority": priority, "name": name, "dateDue": dateDue,
+                  "status": status, "assignedTo": assignedTo, "event_id": event_id}
+        query = "UPDATE task SET id= %(task_id)s, priority= %(priority)s, name= %(name)s, dateDue= %(dateDue)s, status= %(status)s, assignedTo= %(assignedTo)s WHERE id= %(task_id)s;"
+        conn = mysql.connection
+        cursor = conn.cursor()
+        # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
+        print(cursor.execute(query, params))
+        conn.commit()
+        return cls(id, priority, name, dateDue, status, assignedTo, event_id)
+
     # retrieves the tasks for a given event instance and puts them in a dictionary
     @staticmethod
     def getTasksForEvent(event_id):
@@ -337,6 +370,10 @@ class Task:
         if allTasks == []:
             return [{'event_id' : event_id}]
         return allTasks
+
+###
+### Ticket
+###
 
 class Ticket:
     id = -1
