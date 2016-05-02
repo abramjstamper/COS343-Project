@@ -24,7 +24,7 @@ mysql.init_app(app)
 @app.route('/event/<int:event_id>/budget')
 def budget(event_id):
     current_budget = Budget.loadBudget(event_id)
-    response = current_budget.getAllInvoices();
+    response = current_budget.getAllInvoices()
     response.append({"totalSold": Budget.getTotalCountPaid(event_id)})
     response.append({"totalSold": Budget.getTotalExpenses(event_id)})
     return render_template('budget/budget.html', response=response)
@@ -62,7 +62,15 @@ def all_events():
 # returns a single event page for a given event_id
 @app.route('/event/<int:event_id>')
 def event(event_id):
-    response = Event.loadEvent(event_id)
+    response = {}
+    response['event'] = Event.loadEvent(event_id)
+    response['budget'] = Budget.loadBudget(event_id).getAllInvoices()
+    response['budget'].append({"totalSold": Budget.getTotalCountPaid(event_id)})
+    response['budget'].append({"totalSold": Budget.getTotalExpenses(event_id)})
+    response['task'] = Task.getTasksForEvent(event_id)
+    response['ticket'] = Ticket.getAllTickets(event_id)
+    response['ticket'].append({"totalSold": Ticket.getTotalCountSold(event_id)})
+    response['ticket'].append({"totalSold": Ticket.getTotalPriceSold(event_id)})
     return render_template('event/show.html', response=response)
 
 # creates a new event
