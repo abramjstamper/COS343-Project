@@ -3,22 +3,29 @@
 {% block title %}New User{% endblock %}
 
 {% block head %}
-    {{ super() }}
+{{ super() }}
 {% endblock %}
 
 {% block content %}
-<h4>Enter your desired login credentials below. All credentials required.</h4>
-{% from "_formhelpers.html" import render_field %}
-<form method=POST action="{{ request.path }}">
-    <div class="form-group">
+<div class="col-xs-6">
+    <h4>Enter your desired login credentials below. All credentials required.</h4>
+    {% from "_formhelpers.html" import render_field %}
+    <form method=POST action="{{ request.path }}">
+        <div class="form-group">
             <dl>
-            {{ form.hidden_tag() }}
-            {{ render_field(form.name) }}
-            {{ render_field(form.email) }}
-            {{ render_field(form.password) }}
-            {{ render_field(form.password_conf) }}
+                {{ form.hidden_tag() }}
+                {{ render_field(form.name) }}
+                {{ render_field(form.email) }}
+                {{ render_field(form.password) }}
+                {{ render_field(form.password_conf) }}
             </dl>
-        <input type=submit>
-    </div>
-</form>
+            <input type=submit>
+        </div>
+    </form>
+</div>
+
+<div class="col-xs-6">
+    <h3>Already have an account?</h3>
+    <a class="btn btn-default" href="/login" role="button">Login Page</a>
+</div>
 {% endblock %}
