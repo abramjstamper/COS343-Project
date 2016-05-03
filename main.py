@@ -4,7 +4,7 @@ from flask import render_template
 from flask.ext.mysqldb import MySQL
 from forms import *
 
-#App
+# App
 app = Flask(__name__)
 
 # configuration settings
@@ -14,11 +14,12 @@ app.config["MYSQL_PASSWORD"] = ""
 app.config['MYSQL_DB'] = 'event'
 app.config['SECRET_KEY'] = 'very secret-y key value; shhhhh!'
 
-#initializations
+# initializations
 mysql = MySQL()
 mysql.init_app(app)
 login_manager = flask_login.LoginManager()
 login_manager.init_app(app)
+
 
 ## API
 
@@ -28,6 +29,7 @@ login_manager.init_app(app)
 
 # returns budget for a given event_id
 @app.route('/event/<int:event_id>/budget')
+@flask_login.login_required
 def budget(event_id):
     current_budget = Budget.loadBudget(event_id)
     response = current_budget.getAllInvoices()
@@ -35,12 +37,14 @@ def budget(event_id):
     response.append({"totalSold": Budget.getTotalExpenses(event_id)})
     return render_template('budget/budget.html', response=response)
 
+
 ##
 ## Event
 ##
 
 # edits an event based on a given event_id
 @app.route('/event/<int:event_id>/edit', methods=['GET', 'POST'])
+@flask_login.login_required
 def editEvent(event_id):
     form = NewEvent(request.form)
     if request.method == 'GET':
@@ -52,21 +56,26 @@ def editEvent(event_id):
         form.setupStart.data = current_event.setupStart
         form.teardownEnd.data = current_event.teardownEnd
     if request.method == 'POST' and form.validate():
-        thisNewEvent = Event.updateEvent(event_id, form.name.data, form.description.data, form.date_start.data, form.date_end.data,
+        thisNewEvent = Event.updateEvent(event_id, form.name.data, form.description.data, form.date_start.data,
+                                         form.date_end.data,
                                          form.setupStart.data, form.teardownEnd.data)
-        flash('Event ' + str(event_id) +' Updated')
+        flash('Event ' + str(event_id) + ' Updated')
         newEvent_id = int(event_id)
         return redirect(url_for('event_show', event_id=event_id))
     return render_template('event/edit.html', form=form)
 
+
 # returns all events from the database - not user specific (yet)
 @app.route('/event')
+@flask_login.login_required
 def all_events():
     response = Event.getAllEvents()
     return render_template('event/event.html', response=response)
 
+
 # returns a single event page for a given event_id
 @app.route('/event/<int:event_id>')
+@flask_login.login_required
 def event(event_id):
     response = {}
     response['event'] = Event.loadEvent(event_id)
@@ -79,21 +88,29 @@ def event(event_id):
     response['ticket'].append({"totalSold": Ticket.getTotalPriceSold(event_id)})
     return render_template('event/show.html', response=response)
 
+
 # creates a new event
 @app.route('/event/new', methods=['GET', 'POST'])
+@flask_login.login_required
 def newEvent():
     form = NewEvent(request.form)
     if request.method == 'POST' and form.validate():
-        thisNewEvent = Event.createEvent(form.name.data, form.description.data, form.date_start.data, form.date_end.data,
+        thisNewEvent = Event.createEvent(form.name.data, form.description.data, form.date_start.data,
+                                         form.date_end.data,
                                          form.setupStart.data, form.teardownEnd.data)
         flash('New Event Created')
         newEvent_id = int(thisNewEvent.id)
-        return redirect(url_for('event_show', event_id=(newEvent_id)))
+        return redirect(url_for('event', event_id=newEvent_id))
     return render_template('event/new.html', form=form)
+
 
 ###
 ### Login/Log Out
 ###
+@app.route('/')
+def redirect_to_login():
+    return redirect("/login")
+
 
 @app.route('/user/new', methods=['GET', 'POST'])
 def newUser():
@@ -103,6 +120,7 @@ def newUser():
         flash('New User Created')
         return redirect(url_for('login'))
     return render_template('login/new.html', form=form)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -119,19 +137,26 @@ def login():
 
     return 'Bad login'
 
+
 @app.route('/protected')
 @flask_login.login_required
 def protected():
-    return 'Logged in as: ' + flask_login.current_user.id
+    flash("User " + flask_login.current_user.get_name() + " successfully logged In!")
+    return redirect(url_for("all_events"))
+
 
 @app.route('/logout')
 def logout():
     flask_login.logout_user()
-    return 'Logged out'
+    flash("You have been logged out!")
+    return redirect(url_for("login"))
+
 
 @login_manager.unauthorized_handler
 def unauthorized_handler():
-    return 'Unathorized'
+    flash("You are not authorized to access this page.")
+    return redirect(url_for("login"))
+
 
 ##
 ## Task
@@ -139,6 +164,7 @@ def unauthorized_handler():
 
 # edits a task for a given event_id and given task_id
 @app.route('/event/<int:event_id>/task/<int:task_id>/edit', methods=['GET', 'POST'])
+@flask_login.login_required
 def editTask(event_id, task_id):
     form = NewTask(request.form)
     if request.method == 'GET':
@@ -151,30 +177,36 @@ def editTask(event_id, task_id):
         form.assignTo.data = current_task.assignedTo
     if request.method == 'POST' and form.validate():
         thisUpdatedTask = Task.updateTask(task_id, form.priority.data, form.name.data, form.dueDate.data,
-                                         form.status.data,
-                                         form.assignTo.data, event_id)
+                                          form.status.data,
+                                          form.assignTo.data, event_id)
         flash('Task ' + str(task_id) + ' Updated')
         updatedTask_id = int(task_id)
         return redirect(url_for('task', event_id=event_id))
     return render_template('task/edit.html', form=form)
 
+
 # returns the tasks for a given event_id
 @app.route('/event/<int:event_id>/task/new', methods=['GET', 'POST'])
+@flask_login.login_required
 def newTask(event_id):
     current_event = Event.loadEvent(event_id)
     form = NewTask(request.form)
     if request.method == 'POST' and form.validate():
-        thisNewTask = Task.createTaskForEvent(form.name.data, form.dueDate.data, form.priority.data, form.status.data, "admin@admin.com", event_id)
+        thisNewTask = Task.createTaskForEvent(form.name.data, form.dueDate.data, form.priority.data, form.status.data,
+                                              "admin@admin.com", event_id)
         flash('New Task Created')
         return redirect(url_for('task', event_id=current_event.id))
     return render_template('task/new.html', form=form)
 
+
 # retrevies all the tasks for a given event_id
 @app.route('/event/<int:event_id>/task')
+@flask_login.login_required
 def task(event_id):
     current_event = Event.loadEvent(event_id)
     response = Task.getTasksForEvent(event_id)
     return render_template('task/task.html', response=response)
+
 
 ##
 ## Ticket
@@ -182,6 +214,7 @@ def task(event_id):
 
 # returns tickets for a given event_id
 @app.route('/event/<int:event_id>/ticket')
+@flask_login.login_required
 def ticket(event_id):
     current_event = Event.loadEvent(event_id)
     response = Ticket.getAllTickets(event_id)
@@ -189,10 +222,13 @@ def ticket(event_id):
     response.append({"totalSold": Ticket.getTotalPriceSold(event_id)})
     return render_template('ticket/ticket.html', response=response)
 
+
 @app.route('/user')
+@flask_login.login_required
 def users():
     response = User.getUsers()
     return render_template('user/user.html', response=response)
+
 
 ##
 ## Vendor
@@ -200,9 +236,11 @@ def users():
 
 # returns all vendors from the database
 @app.route('/vendor')
+@flask_login.login_required
 def vendor():
     response = Vendor.getAllVendors()
     return render_template('vendor/vendor.html', response=response)
+
 
 ##
 ## Models
@@ -227,11 +265,16 @@ class Budget:
         cur = mysql.connection.cursor()
         cur.execute("SELECT * FROM budget WHERE event_id = %(key)s;", {'key': key})
         data = cur.fetchone()
-        id = data[0]
-        event_id = data[1]
-        return cls(id, event_id)
+        if data != None:
+            id = data[0]
+            event_id = data[1]
+            return cls(id, event_id)
+        return cls(-1, key)
+
 
     def getAllInvoices(self):
+        if self.id == -1:
+            return [{'event_id': self.event_id}]
         cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT * FROM invoice WHERE budget_id = %(id)s;',
@@ -240,7 +283,8 @@ class Budget:
         allInvoices = []
         for i in data:
             allInvoices.append(
-                {'event_id': self.event_id, 'id': i[0], 'total': i[1], 'description': i[2], 'isPaid': i[3], 'budget_id': i[4], 'vendor_id': i[5]})
+                {'event_id': self.event_id, 'id': i[0], 'total': i[1], 'description': i[2], 'isPaid': i[3],
+                 'budget_id': i[4], 'vendor_id': i[5]})
         if allInvoices == []:
             return [{'event_id': self.event_id}]
         return allInvoices
@@ -262,6 +306,7 @@ class Budget:
             {'id': event_id})
         data = cursor.fetchone()
         return data[0]
+
 
 ###
 ### Event
@@ -303,7 +348,7 @@ class Event():
         query = "INSERT INTO event (name, date_start, date_end, description, setup_start, teardown_end) VALUES (%(name)s, %(date_start)s, %(date_end)s, %(description)s, %(setup_start)s, %(teardown_end)s);"
         conn = mysql.connection
         cursor = conn.cursor()
-        #if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
+        # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
         cursor.execute(query, params)
         conn.commit()
         id = cursor.lastrowid
@@ -318,7 +363,7 @@ class Event():
         conn = mysql.connection
         cursor = conn.cursor()
         # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
-        print(cursor.execute(query, params))
+        cursor.execute(query, params)
         conn.commit()
         return cls(id, name, date_start, date_end, description, setup_start, teardown_end)
 
@@ -327,7 +372,7 @@ class Event():
     def loadEvent(cls, key):
         # select statment
         cur = mysql.connection.cursor()
-        cur.execute("SELECT * FROM event.event WHERE id = %(key)s;", {'key' : key})
+        cur.execute("SELECT * FROM event.event WHERE id = %(key)s;", {'key': key})
         data = cur.fetchone()
         id = data[0]
         name = data[1]
@@ -338,6 +383,7 @@ class Event():
         teardownEnd = data[6]
         # print(id, name, date_start, date_end, description, setupStart, teardownEnd);
         return cls(id, name, date_start, date_end, description, setupStart, teardownEnd);
+
 
 ###
 ### Task
@@ -375,11 +421,10 @@ class Task:
         event_id = data[6]
         return cls(id, priority, name, dateDue, status, assignedTo, event_id)
 
-
     # creates a task for a given event instance - To be implemented
     @classmethod
     def createTaskForEvent(cls, name, dueDate, priority, status, user, event_id):
-        #hardcoded params - user_assign - admin@admin.com
+        # hardcoded params - user_assign - admin@admin.com
         params = {"name": name, "dueDate": dueDate, "priority": priority, "status": status,
                   "user_assign": user, "event_id": event_id}
         query = "INSERT INTO task (priority, name, dateDue, status, assignedTo, event_id) VALUES (%(priority)s, %(name)s, %(dueDate)s, %(status)s, %(user_assign)s, %(event_id)s);"
@@ -400,7 +445,7 @@ class Task:
         conn = mysql.connection
         cursor = conn.cursor()
         # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
-        print(cursor.execute(query, params))
+        cursor.execute(query, params)
         conn.commit()
         return cls(id, priority, name, dateDue, status, assignedTo, event_id)
 
@@ -408,14 +453,19 @@ class Task:
     @staticmethod
     def getTasksForEvent(event_id):
         cursor = mysql.connection.cursor()
-        cursor.execute('SELECT event.id, task.id, task.priority, task.name, task.dateDue, task.status, task.assignedTo FROM event.task JOIN event.event ON event_id = event.id WHERE event_id = %(id)s;', {'id' : event_id})
+        cursor.execute(
+            'SELECT event.id, task.id, task.priority, task.name, task.dateDue, task.status, task.assignedTo FROM event.task JOIN event.event ON event_id = event.id WHERE event_id = %(id)s;',
+            {'id': event_id})
         data = cursor.fetchall()
         allTasks = []
         for i in data:
-            allTasks.append({'event_id':i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dueDate': i[4], 'status': i[5], 'assignedTo': i[6]})
+            allTasks.append(
+                {'event_id': i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dueDate': i[4], 'status': i[5],
+                 'assignedTo': i[6]})
         if allTasks == []:
-            return [{'event_id' : event_id}]
+            return [{'event_id': event_id}]
         return allTasks
+
 
 ###
 ### Ticket
@@ -470,12 +520,16 @@ class Ticket:
         data = cursor.fetchone()
         return data[0]
 
+###
+### User
+###
+
 class User(flask_login.UserMixin):
     pass
 
     @login_manager.user_loader
     def user_loader(email):
-        if(email not in User.getUsers()):
+        if (email not in User.getUsers()):
             return
 
         user = User()
@@ -495,6 +549,18 @@ class User(flask_login.UserMixin):
 
         return user
 
+    def get_name(self):
+        conn = mysql.connection
+        cursor = conn.cursor()
+        cursor.execute('SELECT name FROM user WHERE email = %(key)s', {'key': self.id})
+        return cursor.fetchone()[0]
+
+    # def is_authenticated(self):
+    #     conn = mysql.connection
+    #     cursor = conn.cursor()
+    #     cursor.execute('SELECT isAuthenticated FROM user WHERE email = %(key)s', {'key': self.id})
+    #     return cursor.fetchone()[0] == 1
+
     @staticmethod
     def getUsers():
         conn = mysql.connection
@@ -503,7 +569,7 @@ class User(flask_login.UserMixin):
         data = {}
         for i in cursor.fetchall():
             newUser = {}
-            newUser['isAdmin']=i[0]
+            newUser['isAdmin'] = i[0]
             newUser['name'] = i[1]
             newUser['password'] = i[3]
             newUser['is_authenticated'] = i[4]
@@ -535,7 +601,7 @@ class Vendor:
     phone = ""
     address = ""
     email = ""
-    #array of invoices - to be implemented
+    # array of invoices - to be implemented
     invoices = []
 
     def __init__(self, id, name, phone, address, email):
@@ -552,6 +618,7 @@ class Vendor:
         cursor.execute('SELECT * FROM event.vendor;')
         data = cursor.fetchall()
         return data
+
 
 if __name__ == '__main__':
     app.debug = True

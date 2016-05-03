@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "not_auth_base.html" %}
 
 {% block title %}New User{% endblock %}
 
@@ -7,6 +7,7 @@
 {% endblock %}
 
 {% block content %}
+<h4>Enter your desired login credentials below. All credentials required.</h4>
 {% from "_formhelpers.html" import render_field %}
 <form method=POST action="{{ request.path }}">
     <div class="form-group">

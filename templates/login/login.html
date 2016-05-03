@@ -1,21 +1,31 @@
-{% extends "base.html" %}
+{% extends "not_auth_base.html" %}
 
 {% block title %}Login{% endblock %}
 
 {% block head %}
-    {{ super() }}
+{{ super() }}
 {% endblock %}
 
 {% block content %}
-{% from "_formhelpers.html" import render_field %}
-<form method=POST action="{{ request.path }}">
-    <div class="form-group">
-            <dl>
-            {{ form.hidden_tag() }}
-            {{ render_field(form.email) }}
-            {{ render_field(form.password) }}
-            </dl>
-        <input type=submit>
+<div class="row">
+    <div class="col-xs-6">
+        <h3>Please log in with your credentials below</h3>
+        {% from "_formhelpers.html" import render_field %}
+        <form method=POST action="{{ request.path }}">
+            <div class="form-group">
+                <dl>
+                    {{ form.hidden_tag() }}
+                    {{ render_field(form.email) }}
+                    {{ render_field(form.password) }}
+                </dl>
+                <input type=submit>
+            </div>
+        </form>
     </div>
-</form>
+
+    <div class="col-xs-6">
+        <h3>Need an account?</h3>
+        <a class="btn btn-default" href="/user/new" role="button">Create an Account</a>
+    </div>
+</div>
 {% endblock %}

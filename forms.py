@@ -1,7 +1,9 @@
-from wtforms import *
+from flask.ext.wtf import Form
+from wtforms import TextField, DateTimeField, PasswordField, validators
+#from flask.wtf import Form, TextField, PasswordField, validators
 from datetime import datetime, date
 from wtforms_components import NumberInput, DateRange
-from flask.ext.wtf import *
+
 
 class NewEvent(Form):
     name = TextField('Event Name')
@@ -27,5 +29,5 @@ class Login(Form):
 class NewUser(Form):
     name = TextField('Name')
     email = TextField('Email')
-    password = PasswordField('Password')
+    password = PasswordField('Password', [validators.EqualTo('password_conf', message='Passwords must match')])
     password_conf = PasswordField('Password Confirmation')
