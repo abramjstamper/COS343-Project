@@ -9,16 +9,20 @@
     {% endblock %}
 </head>
 <body>
-    <div>
+<div class="container">
+    <nav role="navigation">
         <ul class="nav nav-tabs nav-justified">
             <li role="presentation" ><a href="/event" role="button">All Events</a></li>
             <li role="presentation" ><a href="/event/new" role="button">New Event</a></li>
             <li role="presentation" ><a href="/vendor" role="button">Vendors</a></li>
             <li role="presentation" ><a href="/user" role="button">Users</a></li>
+            <li role="presentation" ><a href="/logout" role="button">Logout</a></li>
         </ul>
+    </nav>
     </div>
 
     <div class="container">
+        <div>
         {% with message = get_flashed_messages() %}
             {% if message %}
                 <div class="alert alert-success">
@@ -26,6 +30,7 @@
                 </div>
             {% endif %}
         {% endwith %}
+            </div>
         {% block content %}
         {% endblock %}
     </div>

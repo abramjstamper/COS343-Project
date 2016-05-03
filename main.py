@@ -3,6 +3,7 @@ import flask.ext.login as flask_login
 from flask import render_template
 from flask.ext.mysqldb import MySQL
 from forms import *
+import re
 
 # App
 app = Flask(__name__)
@@ -95,11 +96,12 @@ def event(event_id):
 def newEvent():
     form = NewEvent(request.form)
     if request.method == 'POST' and form.validate():
-        thisNewEvent = Event.createEvent(form.name.data, form.description.data, form.date_start.data,
+        current_event = Event.createEvent(form.name.data, form.description.data, form.date_start.data,
                                          form.date_end.data,
                                          form.setupStart.data, form.teardownEnd.data)
+        current_budget = Budget.createBudget(current_event.id)
         flash('New Event Created')
-        newEvent_id = int(thisNewEvent.id)
+        newEvent_id = int(current_event.id)
         return redirect(url_for('event', event_id=newEvent_id))
     return render_template('event/new.html', form=form)
 
@@ -129,13 +131,25 @@ def login():
         return render_template('login/login.html', form=form)
     email = form.email.data
     users = User.getUsers()
-    if form.password.data == users[email]['password']:
-        user = User()
-        user.id = email
-        flask_login.login_user(user)
-        return redirect(url_for('protected'))
 
-    return 'Bad login'
+    #blank user input
+    if (not form.password.data) or (not form.email.data):
+        flash("Empty password or email field")
+        return redirect(url_for("login"))
+
+    #checks to see if user exists
+    if form.email.data in users.keys():
+        #checks to see if passwords match
+        if form.password.data == users[email]['password']:
+            user = User()
+            user.id = email
+            flask_login.login_user(user)
+            return redirect(url_for('protected'))
+        else:
+            flash("Incorrect email or password")
+    else:
+        flash("User does not exist")
+    return redirect(url_for("login"))
 
 
 @app.route('/protected')
@@ -268,8 +282,20 @@ class Budget:
             id = data[0]
             event_id = data[1]
             return cls(id, event_id)
-        return cls(-1, key)
+        raise RuntimeError
+        return cls(-1, event_id)
 
+    @classmethod
+    def createBudget(cls, event_id):
+        params = {"event_id": event_id}
+        query = "INSERT INTO budget (event_id) VALUES (%(event_id)s);"
+        conn = mysql.connection
+        cursor = conn.cursor()
+        # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
+        cursor.execute(query, params)
+        conn.commit()
+        id = cursor.lastrowid
+        return cls(id, event_id)
 
     def getAllInvoices(self):
         if self.id == -1:
@@ -547,6 +573,12 @@ class User(flask_login.UserMixin):
         user.is_authenticated = request.form['password'] == users[email]['password']
 
         return user
+
+    def is_admin(self):
+        conn = mysql.connection
+        cursor = conn.cursor()
+        cursor.execute('SELECT isAdmin FROM user WHERE email = %(key)s', {'key': self.id})
+        return cursor.fetchone()[0]
 
     def get_name(self):
         conn = mysql.connection
