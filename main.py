@@ -1,10 +1,11 @@
 from flask import *
+import flask.ext.login as flask_login
 from flask import render_template
 from flask.ext.mysqldb import MySQL
 from forms import *
 
+#App
 app = Flask(__name__)
-mysql = MySQL()
 
 # configuration settings
 app.config["MYSQL_HOST"] = "127.0.0.1"
@@ -12,7 +13,12 @@ app.config["MYSQL_USER"] = "root"
 app.config["MYSQL_PASSWORD"] = ""
 app.config['MYSQL_DB'] = 'event'
 app.config['SECRET_KEY'] = 'very secret-y key value; shhhhh!'
+
+#initializations
+mysql = MySQL()
 mysql.init_app(app)
+login_manager = flask_login.LoginManager()
+login_manager.init_app(app)
 
 ## API
 
@@ -85,6 +91,48 @@ def newEvent():
         return redirect(url_for('event_show', event_id=(newEvent_id)))
     return render_template('event/new.html', form=form)
 
+###
+### Login/Log Out
+###
+
+@app.route('/user/new', methods=['GET', 'POST'])
+def newUser():
+    form = NewUser(request.form)
+    if request.method == 'POST' and form.validate():
+        newUser = User.createUser(form.name.data, form.email.data, form.password.data, form.password_conf.data)
+        flash('New User Created')
+        return redirect(url_for('login'))
+    return render_template('login/new.html', form=form)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = Login(request.form)
+    if request.method == 'GET':
+        return render_template('login/login.html', form=form)
+    email = form.email.data
+    users = User.getUsers()
+    if form.password.data == users[email]['password']:
+        user = User()
+        user.id = email
+        flask_login.login_user(user)
+        return redirect(url_for('protected'))
+
+    return 'Bad login'
+
+@app.route('/protected')
+@flask_login.login_required
+def protected():
+    return 'Logged in as: ' + flask_login.current_user.id
+
+@app.route('/logout')
+def logout():
+    flask_login.logout_user()
+    return 'Logged out'
+
+@login_manager.unauthorized_handler
+def unauthorized_handler():
+    return 'Unathorized'
+
 ##
 ## Task
 ##
@@ -140,6 +188,11 @@ def ticket(event_id):
     response.append({"totalSold": Ticket.getTotalCountSold(event_id)})
     response.append({"totalSold": Ticket.getTotalPriceSold(event_id)})
     return render_template('ticket/ticket.html', response=response)
+
+@app.route('/user')
+def users():
+    response = User.getUsers()
+    return render_template('user/user.html', response=response)
 
 ##
 ## Vendor
@@ -286,21 +339,6 @@ class Event():
         # print(id, name, date_start, date_end, description, setupStart, teardownEnd);
         return cls(id, name, date_start, date_end, description, setupStart, teardownEnd);
 
-    #depercated and moved function to Ticket class
-    # def getAllTickets(self):
-    #     cursor = mysql.connection.cursor()
-    #     cursor.execute(
-    #         'SELECT * FROM ticket WHERE event_id = %(id)s;',
-    #         {'id': self.id})
-    #     data = cursor.fetchall()
-    #     allTickets = []
-    #     for i in data:
-    #         allTickets.append(
-    #             {'event_id': self.id, 'id': i[0], 'price': i[1], 'section': i[2], 'seat_num': i[3], 'isSold': i[4]})
-    #     if allTickets == []:
-    #         return [{'event_id': self.id}]
-    #     return allTickets
-
 ###
 ### Task
 ###
@@ -431,6 +469,63 @@ class Ticket:
             {'id': event_id})
         data = cursor.fetchone()
         return data[0]
+
+class User(flask_login.UserMixin):
+    pass
+
+    @login_manager.user_loader
+    def user_loader(email):
+        if(email not in User.getUsers()):
+            return
+
+        user = User()
+        user.id = email
+        return user
+
+    @login_manager.request_loader
+    def request_loader(request):
+        email = request.form.get('email')
+        if (email not in User.getUsers()):
+            return
+
+        user = User()
+        user.id = email
+
+        user.is_authenticated = request.form['password'] == users[email]['password']
+
+        return user
+
+    @staticmethod
+    def getUsers():
+        conn = mysql.connection
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM event.user;')
+        data = {}
+        for i in cursor.fetchall():
+            newUser = {}
+            newUser['isAdmin']=i[0]
+            newUser['name'] = i[1]
+            newUser['password'] = i[3]
+            newUser['is_authenticated'] = i[4]
+            newUser['is_active'] = i[5]
+            data[i[2]] = newUser
+        return data
+
+    @staticmethod
+    def createUser(name, email, password, password_conf):
+        if password == password_conf:
+            params = {"isAdmin": False, "name": name, "email": email, "password": password, "isAuthenticated": False,
+                      "isActive": True}
+            query = "INSERT INTO user (isAdmin, name, email, password, isAuthenticated, isActive) VALUES (%(isAdmin)s, %(name)s, %(email)s, %(password)s, %(isAuthenticated)s, %(isActive)s);"
+            conn = mysql.connection
+            cursor = conn.cursor()
+            # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
+            cursor.execute(query, params)
+            conn.commit()
+            id = cursor.lastrowid
+            return id
+
+        raise RuntimeError
 
 
 # an instance of a vendor

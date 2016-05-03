@@ -1,4 +1,4 @@
-from wtforms import Form, TextField, DateTimeField, validators
+from wtforms import *
 from datetime import datetime, date
 from wtforms_components import NumberInput, DateRange
 from flask.ext.wtf import *
@@ -19,3 +19,13 @@ class NewTask(Form):
     priority = TextField('Priority')
     status = TextField('Status')
     assignTo = TextField('User Assigned To')
+
+class Login(Form):
+    email = TextField('Email')
+    password = PasswordField('Password')
+
+class NewUser(Form):
+    name = TextField('Name')
+    email = TextField('Email')
+    password = PasswordField('Password')
+    password_conf = PasswordField('Password Confirmation')
