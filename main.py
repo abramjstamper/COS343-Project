@@ -241,7 +241,6 @@ def vendor():
     response = Vendor.getAllVendors()
     return render_template('vendor/vendor.html', response=response)
 
-
 ##
 ## Models
 ##
@@ -618,7 +617,6 @@ class Vendor:
         cursor.execute('SELECT * FROM event.vendor;')
         data = cursor.fetchall()
         return data
-
 
 if __name__ == '__main__':
     app.debug = True
