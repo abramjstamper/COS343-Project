@@ -60,7 +60,6 @@
         <h2><a href="/event/{{response['event'].id}}/budget">Budget</a></h2>
          <table class="table table-bordered table-striped">
             <tr>
-                <th>ID</th>
                 <th>Total</th>
                 <th>Description</th>
                 <th>isPaid?</th>
@@ -68,7 +67,6 @@
             </tr>
         {% for invoice in budget %}
             <tr>
-                <td>{{ invoice }}</td>
                 <td>{{ budget[invoice].total }}</td>
                 <td>{{ budget[invoice].description }}</td>
                 <td>{{ budget[invoice].isPaid }}</td>
@@ -76,11 +74,10 @@
             </tr>
         {% endfor %}
             <tr>
-                <td></td>
                 <td>{{ totalExpense }}</td>
                 <td><strong>Total Expenses</strong></td>
-                <td><strong>Number Paid</strong></td>
                 <td>{{ totalSold }}</td>
+                <td><strong>Number Paid</strong></td>
             </tr>
         </table>
 
