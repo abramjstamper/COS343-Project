@@ -1,8 +1,8 @@
 from flask.ext.wtf import Form
-from wtforms import TextField, DateTimeField, PasswordField, validators
+from wtforms import TextField, DateTimeField, PasswordField, validators, BooleanField
 #from flask.wtf import Form, TextField, PasswordField, validators
 from datetime import datetime, date
-from wtforms_components import NumberInput, DateRange, Email, EmailField
+from wtforms_components import NumberInput, DateRange, Email, EmailField, DecimalField
 #from wtforms.fields.html5 import EmailField
 
 
@@ -32,3 +32,9 @@ class NewUser(Form):
     email = EmailField('Email', validators=[Email(), validators.DataRequired()])
     password = PasswordField('Password', validators=[validators.EqualTo('password_conf', message='Passwords must match'), validators.DataRequired()])
     password_conf = PasswordField('Password Confirmation', validators=[validators.DataRequired()])
+
+class NewInvoice(Form):
+    total = TextField('Total', validators=[validators.DataRequired()])
+    description = TextField('Description')
+    isPaid = BooleanField('Has been paid?')
+    vendor_id = TextField('Vendor ID', validators=[validators.DataRequired()])

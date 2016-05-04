@@ -3,7 +3,6 @@ import flask.ext.login as flask_login
 from flask import render_template
 from flask.ext.mysqldb import MySQL
 from forms import *
-import re
 
 # App
 app = Flask(__name__)
@@ -34,10 +33,24 @@ login_manager.init_app(app)
 def budget(event_id):
     current_budget = Budget.loadBudget(event_id)
     response = current_budget.getAllInvoices()
-    response.append({"totalSold": Budget.getTotalCountPaid(event_id)})
-    response.append({"totalSold": Budget.getTotalExpenses(event_id)})
-    return render_template('budget/budget.html', response=response)
+    totalSold = Budget.getTotalCountPaid(current_budget.id)
+    totalExpense = Budget.getTotalExpenses(current_budget.id)
+    return render_template('budget/budget.html', event_id=event_id, response=response, totalSold=totalSold, totalExpense=totalExpense)
 
+@app.route('/event/<int:event_id>/budget/new', methods=['GET', 'POST'])
+@flask_login.login_required
+def newInvoice(event_id):
+    form = NewInvoice(request.form)
+    current_budget = Budget.loadBudget(event_id)
+    # if request.method == 'GET':
+    #     form.total.data = current_budget.invoices[current_budget.id].total
+    #     form.description.data = current_budget.invoices[current_budget.id].description
+    #     form.isPaid.data = current_budget.invoices[current_budget.id].isPaid
+    #     form.vendor_id.data = current_budget.invoices[current_budget.id].vendor_id
+    if request.method == 'POST' and form.validate():
+        current_budget.createInvoice(form.total.data, form.description.data, form.isPaid.data, form.vendor_id.data)
+        return redirect(url_for('budget', event_id=event_id))
+    return render_template('budget/new.html', form=form)
 
 ##
 ## Event
@@ -80,15 +93,22 @@ def all_events():
 def event(event_id):
     response = {}
     response['event'] = Event.loadEvent(event_id)
-    response['budget'] = Budget.loadBudget(event_id).getAllInvoices()
-    response['budget'].append({"totalSold": Budget.getTotalCountPaid(event_id)})
-    response['budget'].append({"totalSold": Budget.getTotalExpenses(event_id)})
+    current_budget = Budget.loadBudget(event_id)
+    budget = current_budget.getAllInvoices()
+    totalSold = Budget.getTotalCountPaid(current_budget.id)
+    totalExpense = Budget.getTotalExpenses(current_budget.id)
     response['task'] = Task.getTasksForEvent(event_id)
     response['ticket'] = Ticket.getAllTickets(event_id)
     response['ticket'].append({"totalSold": Ticket.getTotalCountSold(event_id)})
     response['ticket'].append({"totalSold": Ticket.getTotalPriceSold(event_id)})
-    return render_template('event/show.html', response=response)
+    return render_template('event/show.html', response=response, budget=budget, totalSold=totalSold, totalExpense=totalExpense)
 
+@app.route('/event/<int:event_id>/delete')
+@flask_login.login_required
+def delete_event(event_id):
+    current_event = Event.loadEvent(event_id)
+    current_event.deleteEvent()
+    return redirect(url_for('all_events'))
 
 # creates a new event
 @app.route('/event/new', methods=['GET', 'POST'])
@@ -207,7 +227,7 @@ def newTask(event_id):
     form = NewTask(request.form)
     if request.method == 'POST' and form.validate():
         thisNewTask = Task.createTaskForEvent(form.name.data, form.dueDate.data, form.priority.data, form.status.data,
-                                              "admin@admin.com", event_id)
+                                              form.assignTo.data, event_id)
         flash('New Task Created')
         return redirect(url_for('task', event_id=current_event.id))
     return render_template('task/new.html', form=form)
@@ -257,7 +277,7 @@ def vendor():
 
 ##
 ## Models
-##
+##cursor = cnx.cursor(dictionary=True)
 
 ###
 ### Budget/Invoice
@@ -282,8 +302,8 @@ class Budget:
             id = data[0]
             event_id = data[1]
             return cls(id, event_id)
-        raise RuntimeError
-        return cls(-1, event_id)
+        #populate self.invoices
+        return cls(-1, key)
 
     @classmethod
     def createBudget(cls, event_id):
@@ -304,15 +324,18 @@ class Budget:
         cursor.execute(
             'SELECT * FROM invoice WHERE budget_id = %(id)s;',
             {'id': self.id})
-        data = cursor.fetchall()
-        allInvoices = []
-        for i in data:
-            allInvoices.append(
-                {'event_id': self.event_id, 'id': i[0], 'total': i[1], 'description': i[2], 'isPaid': i[3],
-                 'budget_id': i[4], 'vendor_id': i[5]})
-        if allInvoices == []:
-            return [{'event_id': self.event_id}]
-        return allInvoices
+        data = {}
+        for i in cursor.fetchall():
+            newInvoice = {}
+            newInvoice['vendor_id'] = i[5]
+            newInvoice['total'] = i[1]
+            newInvoice['description'] = i[2]
+            newInvoice['isPaid'] = i[3]
+            newInvoice['budget_id'] = i[4]
+            newInvoice['event_id'] = self.event_id
+            data[i[0]] = newInvoice
+        self.invoices = data
+        return data
 
     @staticmethod
     def getTotalExpenses(event_id):
@@ -331,6 +354,20 @@ class Budget:
             {'id': event_id})
         data = cursor.fetchone()
         return data[0]
+
+    def createInvoice(self, total, description, isPaid, vendor_id):
+        params = {"total": total, "description": description,
+                  "isPaid": isPaid, "budget_id": self.id, "vendor_id": vendor_id}
+        query = "INSERT INTO invoice (total, description, isPaid, budget_id, vendor_id) VALUES (%(total)s, %(description)s, %(isPaid)s, %(budget_id)s, %(vendor_id)s);"
+        conn = mysql.connection
+        cursor = conn.cursor()
+        # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
+        cursor.execute(query, params)
+        conn.commit()
+        params["id"] = cursor.lastrowid
+        params["budget_id"] = self.id
+        self.invoices.append(params)
+        return params
 
 
 ###
@@ -407,8 +444,25 @@ class Event():
         setupStart = data[5]
         teardownEnd = data[6]
         # print(id, name, date_start, date_end, description, setupStart, teardownEnd);
-        return cls(id, name, date_start, date_end, description, setupStart, teardownEnd);
+        return cls(id, name, date_start, date_end, description, setupStart, teardownEnd)
 
+    #deletes an event and all associated entities
+    def deleteEvent(self):
+        params ={"event_id": self.id}
+        query = '''
+        START TRANSACTION;
+        DELETE FROM ticket WHERE %(event_id)s = event_id;
+        DELETE FROM task WHERE %(event_id)s = event_id;
+        DELETE FROM invoice WHERE budget_id = (SELECT id FROM budget WHERE %(event_id)s = event_id);
+        DELETE FROM budget WHERE %(event_id)s = event_id;
+        DELETE FROM event_for_user WHERE %(event_id)s = event_id;
+        DELETE FROM event WHERE %(event_id)s = id;
+        COMMIT;
+        '''
+        conn = mysql.connection
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+    #conn.commit()
 
 ###
 ### Task
@@ -486,7 +540,7 @@ class Task:
         for i in data:
             allTasks.append(
                 {'event_id': i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dueDate': i[4], 'status': i[5],
-                 'assignedTo': i[6]})
+                 'assignedTo': User.get_name_id(i[6])})
         if allTasks == []:
             return [{'event_id': event_id}]
         return allTasks
@@ -522,7 +576,9 @@ class Ticket:
         allTickets = []
         for i in data:
             allTickets.append(
-                {'event_id': event_id, 'id': i[0], 'price': i[1], 'section': i[2], 'seat_num': i[3], 'isSold': i[4]})
+                {'event_id': event_id, 'id': i[0], 'price': i[1],
+                 'section': Misc.convert_null(i[2]), 'seat_num': Misc.convert_null(i[3]),
+                 'isSold': Misc.convert_to_bool(i[4])})
         if allTickets == []:
             return [{'event_id': event_id}]
         return allTickets
@@ -584,6 +640,13 @@ class User(flask_login.UserMixin):
         conn = mysql.connection
         cursor = conn.cursor()
         cursor.execute('SELECT name FROM user WHERE email = %(key)s', {'key': self.id})
+        return cursor.fetchone()[0]
+
+    @staticmethod
+    def get_name_id(id):
+        conn = mysql.connection
+        cursor = conn.cursor()
+        cursor.execute('SELECT name FROM user WHERE email = %(key)s', {'key': id})
         return cursor.fetchone()[0]
 
     # def is_authenticated(self):
@@ -649,6 +712,21 @@ class Vendor:
         cursor.execute('SELECT * FROM event.vendor;')
         data = cursor.fetchall()
         return data
+
+class Misc:
+    @staticmethod
+    def convert_to_bool(value):
+        if value == 1:
+            return 'Yes'
+        else:
+            return 'No'
+
+    @staticmethod
+    def convert_null(value):
+        if value == 'null':
+            return ""
+        else:
+            return value
 
 if __name__ == '__main__':
     app.debug = True

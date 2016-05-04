@@ -8,10 +8,18 @@
 {% block content %}
         <h1>{{ self.title() }}</h1>
 
+    <button type="button" class="btn btn-danger" id="hiddenDelete" onclick="$('#deleteFlash').toggleClass('hidden'); $('#hiddenDelete').toggleClass('hidden');">Delete Event</button>
+
+        <div class="alert alert-danger alert-dismissible hidden" id= "deleteFlash" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Warning!</strong> You cannot undo this action. Are you sure you want to delete the event and all its associated data?
+            <div class="clearfix"></div>
+            <a href="/event/{{ response['event'].id }}/delete" class="btn btn-success" >Yes! Delete</a>
+        </div>
+
         <h2><a href="/event/{{response['event'].id}}/edit">General</a></h2>
         <table class="table table-bordered table-striped">
             <tr>
-                <th>ID</th>
                 <th>Name</th>
                 <th>Description</th>
                 <th>Event Start Datetime</th>
@@ -20,7 +28,6 @@
                 <th>Teardown Ending Time</th>
             </tr>
             <tr>
-                <td>{{ response['event'].id }}</td>
                 <td>{{ response['event'].name}}</td>
                 <td>{{ response['event'].description }}</td>
                 <td>{{ response['event'].date_start }}</td>
@@ -33,16 +40,14 @@
         <h2><a href="/event/{{response['event'].id}}/task">Tasks</a></h2>
         <table class="table table-bordered table-striped">
             <tr>
-                <th>ID</th>
                 <th>Name</th>
                 <th>Date Due</th>
                 <th>Priority</th>
                 <th>Status</th>
-                <th>assignedTo</th>
+                <th>Assigned To</th>
             </tr>
         {% for task in response['task'] %}
             <tr>
-                <td>{{ task.id }}</td>
                 <td><a href="/event/{{task.event_id}}/task/{{task.id}}/edit">{{ task.name }}</a></td>
                 <td>{{ task.dueDate }}</td>
                 <td>{{ task.priority }}</td>
@@ -53,7 +58,7 @@
         </table>
 
         <h2><a href="/event/{{response['event'].id}}/budget">Budget</a></h2>
-        <table class="table table-bordered table-striped">
+         <table class="table table-bordered table-striped">
             <tr>
                 <th>ID</th>
                 <th>Total</th>
@@ -61,28 +66,27 @@
                 <th>isPaid?</th>
                 <th>Vendor ID</th>
             </tr>
-        {% for invoice in response['budget'][:-2]%}
+        {% for invoice in budget %}
             <tr>
-                <td>{{ invoice.id }}</td>
-                <td>{{ invoice.total }}</td>
-                <td>{{ invoice.description }}</td>
-                <td>{{ invoice.isPaid }}</td>
-                <td>{{ invoice.vendor_id }}</td>
+                <td>{{ invoice }}</td>
+                <td>{{ budget[invoice].total }}</td>
+                <td>{{ budget[invoice].description }}</td>
+                <td>{{ budget[invoice].isPaid }}</td>
+                <td>{{ budget[invoice].vendor_id }}</td>
             </tr>
         {% endfor %}
             <tr>
                 <td></td>
-                <td>{{ response['budget'][-1].totalSold }}</td>
-                <td>Price Total Sold</td>
-                <td>Number Total Sold</td>
-                <td>{{ response['budget'][-2].totalSold }}</td>
+                <td>{{ totalExpense }}</td>
+                <td><strong>Total Expenses</strong></td>
+                <td><strong>Number Paid</strong></td>
+                <td>{{ totalSold }}</td>
             </tr>
         </table>
 
         <h2><a href="/event/{{response['event'].id}}/ticket">Ticket</a></h2>
         <table class="table table-bordered table-striped">
             <tr>
-                <th>ID</th>
                 <th>Price</th>
                 <th>Section</th>
                 <th>Seat Num</th>
@@ -90,7 +94,6 @@
             </tr>
         {% for ticket in response['ticket'][:-2] %}
             <tr>
-                <td>{{ ticket.id }}</td>
                 <td>{{ ticket.price }}</td>
                 <td>{{ ticket.section }}</td>
                 <td>{{ ticket.seat_num }}</td>
@@ -98,7 +101,6 @@
             </tr>
         {% endfor %}
             <tr>
-                <td></td>
                 <td>{{ response['ticket'][-1].totalSold }}</td>
                 <td>Price Total Sold</td>
                 <td>Number Total Sold</td>

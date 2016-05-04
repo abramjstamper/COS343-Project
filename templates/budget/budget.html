@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Budget for Event ID {{response[0].event_id}}{% endblock %}
+{% block title %}Budget for Event ID {{ event_id }}{% endblock %}
 
 {% block head %}
     {{ super() }}
@@ -7,6 +7,8 @@
 
 {% block content %}
         <h1>{{ self.title() }}</h1>
+
+        <a class="btn btn-default" href="{{ request.path }}/new">New Budget For Event</a>
 
         <table class="table table-bordered table-striped">
             <tr>
@@ -16,21 +18,21 @@
                 <th>isPaid?</th>
                 <th>Vendor ID</th>
             </tr>
-        {% for invoice in response[:-2] %}
+        {% for invoice in response %}
             <tr>
-                <td>{{ invoice.id }}</td>
-                <td>{{ invoice.total }}</td>
-                <td>{{ invoice.description }}</td>
-                <td>{{ invoice.isPaid }}</td>
-                <td>{{ invoice.vendor_id }}</td>
+                <td>{{ invoice }}</td>
+                <td>{{ response[invoice].total }}</td>
+                <td>{{ response[invoice].description }}</td>
+                <td>{{ response[invoice].isPaid }}</td>
+                <td>{{ response[invoice].vendor_id }}</td>
             </tr>
         {% endfor %}
             <tr>
                 <td></td>
-                <td>{{ response[-1].totalSold }}</td>
-                <td>Price Total Sold</td>
-                <td>Number Total Sold</td>
-                <td>{{ response[-2].totalSold }}</td>
+                <td>{{ totalExpense }}</td>
+                <td><strong>Total Expenses</strong></td>
+                <td><strong>Number Paid</strong></td>
+                <td>{{ totalSold }}</td>
             </tr>
         </table>
 {% endblock %}
