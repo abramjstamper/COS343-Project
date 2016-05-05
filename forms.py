@@ -1,5 +1,5 @@
 from flask.ext.wtf import Form
-from wtforms import TextField, DateTimeField, PasswordField, validators, BooleanField
+from wtforms import TextField, DateTimeField, PasswordField, validators, BooleanField, ValidationError
 #from flask.wtf import Form, TextField, PasswordField, validators
 from datetime import datetime, date
 from wtforms_components import NumberInput, DateRange, Email, EmailField, DecimalField
@@ -38,3 +38,13 @@ class NewInvoice(Form):
     description = TextField('Description')
     isPaid = BooleanField('Has been paid?')
     vendor_id = TextField('Vendor ID', validators=[validators.DataRequired()])
+
+class NewTicket(Form):
+    numTicketsTotal = TextField('Number of Total Tickets Being Sold')
+    numSeatsPerSection = TextField('Number of Seats Per Section')
+    numSections = TextField('Number of sections')
+    price = TextField('Price', validators=[validators.DataRequired()])
+
+    #if int(numTicketsTotal.data) != int(numSeatsPerSection.data) * int(numSections.data):
+     #   raise ValidationError('Number of Total Tickets Being Sold Must Equal Number of Seats Per Section multipled by Number of Sections')
+

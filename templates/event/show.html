@@ -61,48 +61,30 @@
         <h2><a href="/event/{{response['event'].id}}/budget">Budget</a></h2>
          <table class="table table-bordered table-striped">
             <tr>
-                <th>Total</th>
-                <th>Description</th>
-                <th>isPaid?</th>
-                <th>Vendor ID</th>
+                <th>Total Expenses</th>
+                <th>Count Invoices Paid</th>
+                <th>Count of Invoices Not Paid</th>
             </tr>
-        {% for invoice in budget %}
             <tr>
-                <td>{{ budget[invoice].total }}</td>
-                <td>{{ budget[invoice].description }}</td>
-                <td>{{ budget[invoice].isPaid }}</td>
-                <td>{{ budget[invoice].vendor_id }}</td>
-            </tr>
-        {% endfor %}
-            <tr>
-                <td>{{ totalExpense }}</td>
-                <td><strong>Total Expenses</strong></td>
-                <td>{{ totalSold }}</td>
-                <td><strong>Number Paid</strong></td>
+                <td class="text-danger">{{ totalExpense }}</td>
+                <td class="text-success">{{ totalCountPaid }}</td>
+                <td class="text-danger">{{ totalCountNotPaid }}</td>
             </tr>
         </table>
 
         <h2><a href="/event/{{response['event'].id}}/ticket">Ticket</a></h2>
         <table class="table table-bordered table-striped">
             <tr>
-                <th>Price</th>
-                <th>Section</th>
-                <th>Seat Num</th>
-                <th>isSold</th>
+                <th>Price Total Sold</th>
+                <th>Number Total Sold</th>
+                <th>Total Not Sold</th>
+                <th>Total Tix Selling</th>
             </tr>
-        {% for ticket in response['ticket'][:-2] %}
             <tr>
-                <td>{{ ticket.price }}</td>
-                <td>{{ ticket.section }}</td>
-                <td>{{ ticket.seat_num }}</td>
-                <td>{{ ticket.isSold }}</td>
-            </tr>
-        {% endfor %}
-            <tr>
-                <td>{{ response['ticket'][-1].totalSold }}</td>
-                <td>Price Total Sold</td>
-                <td>Number Total Sold</td>
-                <td>{{ response['ticket'][-2].totalSold }}</td>
+                <td class="text-success">{{ totalIncome }}</td>
+                <td class="text-success">{{ totalTixSold }}</td>
+                <td class="text-danger">{{ totalTixNotSold }}</td>
+                <td class="text-warning">{{ totalTix }}</td>
             </tr>
         </table>
  {% endblock %}

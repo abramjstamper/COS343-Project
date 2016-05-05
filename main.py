@@ -94,14 +94,19 @@ def event(event_id):
     response = {}
     response['event'] = Event.loadEvent(event_id)
     current_budget = Budget.loadBudget(event_id)
-    budget = current_budget.getAllInvoices()
-    totalSold = Budget.getTotalCountPaid(current_budget.id)
+    totalCountPaid = Budget.getTotalCountPaid(current_budget.id)
+    totalCountNotPaid = Budget.getTotalCountNotPaid(current_budget.id)
     totalExpense = Budget.getTotalExpenses(current_budget.id)
     response['task'] = Task.getTasksForEvent(event_id)
-    response['ticket'] = Ticket.getAllTickets(event_id)
-    response['ticket'].append({"totalSold": Ticket.getTotalCountSold(event_id)})
-    response['ticket'].append({"totalSold": Ticket.getTotalPriceSold(event_id)})
-    return render_template('event/show.html', response=response, budget=budget, totalSold=totalSold, totalExpense=totalExpense)
+    totalTixSold = Ticket.getTotalCountSold(event_id)
+    totalIncome = Ticket.getTotalPriceSold(event_id)
+    totalTix = Ticket.getTotalCount(event_id)
+    totalTixNotSold = Ticket.getTotalCountNotSold(event_id)
+
+    return render_template('event/show.html', response=response, budget=budget,
+                           totalCountNotPaid=totalCountNotPaid, totalCountPaid=totalCountPaid,
+                           totalExpense=totalExpense, totalIncome=totalIncome, totalTixSold=totalTixSold,
+                           totalTix= totalTix, totalTixNotSold=totalTixNotSold)
 
 @app.route('/event/<int:event_id>/delete')
 @flask_login.login_required
@@ -256,6 +261,20 @@ def ticket(event_id):
     response.append({"totalSold": Ticket.getTotalPriceSold(event_id)})
     return render_template('ticket/ticket.html', response=response)
 
+@app.route('/event/<int:event_id>/ticket/new', methods=['GET', 'POST'])
+@flask_login.login_required
+def newTicket(event_id):
+    current_event = Event.loadEvent(event_id)
+    form = NewTicket(request.form)
+    if request.method == 'POST' and form.validate():
+        Ticket.createTickets(form.numTicketsTotal.data, form.numSections.data, form.numSeatsPerSection.data, True, form.price.data, event_id)
+        flash('New Tickets Created')
+        return redirect(url_for('ticket', event_id=current_event.id))
+    return render_template('ticket/new.html', form=form)
+
+###
+### User
+###
 
 @app.route('/user')
 @flask_login.login_required
@@ -341,7 +360,7 @@ class Budget:
     def getTotalExpenses(event_id):
         cursor = mysql.connection.cursor()
         cursor.execute(
-            'SELECT SUM(total) FROM invoice WHERE budget_id = %(id)s AND isPaid = 1;',
+            'SELECT SUM(total) FROM invoice WHERE budget_id = %(id)s;',
             {'id': event_id})
         data = cursor.fetchone()
         return data[0]
@@ -351,6 +370,15 @@ class Budget:
         cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT count(isPaid) FROM invoice WHERE budget_id = %(id)s AND isPaid = 1;',
+            {'id': event_id})
+        data = cursor.fetchone()
+        return data[0]
+
+    @staticmethod
+    def getTotalCountNotPaid(event_id):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT count(isPaid) FROM invoice WHERE budget_id = %(id)s AND isPaid = 0;',
             {'id': event_id})
         data = cursor.fetchone()
         return data[0]
@@ -600,6 +628,38 @@ class Ticket:
             {'id': event_id})
         data = cursor.fetchone()
         return data[0]
+
+    @staticmethod
+    def getTotalCount(event_id):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT count(isSold) FROM ticket WHERE event_id = %(id)s;',
+            {'id': event_id})
+        data = cursor.fetchone()
+        return data[0]
+
+    @staticmethod
+    def getTotalCountNotSold(event_id):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT count(isSold) FROM ticket WHERE event_id = %(id)s AND isSold = 0;',
+            {'id': event_id})
+        data = cursor.fetchone()
+        return data[0]
+
+    @staticmethod
+    def createTickets(numTicketsTotal, numSections, numSeatsPerSection, isSold, price, event_id):
+        conn = mysql.connection
+        cursor = conn.cursor()
+        if(numTicketsTotal == ""):
+            query = "START TRANSACTION; "
+            for i in range(int(numSections)):
+                for j in range(int(numSeatsPerSection)):
+                    query += "INSERT INTO ticket (price, section, seat_num, isSold, event_id) VALUES (" + price + ", " + str(i) + ", " + str(j) + ", " + str(isSold) + ", " + str(event_id) + "); "
+            query += " COMMIT;"
+            cursor.execute(query)
+
+
 
 ###
 ### User
