@@ -12,7 +12,6 @@
 
         <table class="table table-bordered table-striped">
             <tr>
-                <th>ID</th>
                 <th>Name</th>
                 <th>Date Due</th>
                 <th>Priority</th>
@@ -21,7 +20,6 @@
             </tr>
         {% for task in response %}
             <tr>
-                <td>{{ task.id }}</td>
                 <td><a href="/event/{{task.event_id}}/task/{{task.id}}/edit">{{ task.name }}</a></td>
                 <td>{{ task.dueDate }}</td>
                 <td>{{ task.priority }}</td>

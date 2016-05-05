@@ -62,13 +62,15 @@
          <table class="table table-bordered table-striped">
             <tr>
                 <th>Total Expenses</th>
-                <th>Count Invoices Paid</th>
-                <th>Count of Invoices Not Paid</th>
+                <th>Number Invoices Paid</th>
+                <th>Number Invoices Not Paid</th>
+                <th>Number Invoices</th>
             </tr>
             <tr>
                 <td class="text-danger">{{ totalExpense }}</td>
                 <td class="text-success">{{ totalCountPaid }}</td>
                 <td class="text-danger">{{ totalCountNotPaid }}</td>
+                <td class="text-primary">{{ totalCountInvoice }}</td>
             </tr>
         </table>
 
@@ -84,7 +86,7 @@
                 <td class="text-success">{{ totalIncome }}</td>
                 <td class="text-success">{{ totalTixSold }}</td>
                 <td class="text-danger">{{ totalTixNotSold }}</td>
-                <td class="text-warning">{{ totalTix }}</td>
+                <td class="text-primary">{{ totalTix }}</td>
             </tr>
         </table>
  {% endblock %}

@@ -97,7 +97,8 @@ def event(event_id):
     totalCountPaid = Budget.getTotalCountPaid(current_budget.id)
     totalCountNotPaid = Budget.getTotalCountNotPaid(current_budget.id)
     totalExpense = Budget.getTotalExpenses(current_budget.id)
-    response['task'] = Task.getTasksForEvent(event_id)
+    totalCountInvoice = Budget.getTotalCountInvoice(current_budget.id)
+    response['task'] = Task.getTasksNotComplete(event_id)
     totalTixSold = Ticket.getTotalCountSold(event_id)
     totalIncome = Ticket.getTotalPriceSold(event_id)
     totalTix = Ticket.getTotalCount(event_id)
@@ -106,7 +107,8 @@ def event(event_id):
     return render_template('event/show.html', response=response, budget=budget,
                            totalCountNotPaid=totalCountNotPaid, totalCountPaid=totalCountPaid,
                            totalExpense=totalExpense, totalIncome=totalIncome, totalTixSold=totalTixSold,
-                           totalTix= totalTix, totalTixNotSold=totalTixNotSold)
+                           totalTix= totalTix, totalTixNotSold=totalTixNotSold,
+                           totalCountInvoice=totalCountInvoice)
 
 @app.route('/event/<int:event_id>/delete')
 @flask_login.login_required
@@ -346,10 +348,10 @@ class Budget:
         data = {}
         for i in cursor.fetchall():
             newInvoice = {}
-            newInvoice['vendor_id'] = i[5]
+            newInvoice['vendor_id'] = Vendor.getVendorName(i[5])
             newInvoice['total'] = i[1]
             newInvoice['description'] = i[2]
-            newInvoice['isPaid'] = i[3]
+            newInvoice['isPaid'] = Misc.convert_to_bool(i[3])
             newInvoice['budget_id'] = i[4]
             newInvoice['event_id'] = self.event_id
             data[i[0]] = newInvoice
@@ -370,6 +372,15 @@ class Budget:
         cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT count(isPaid) FROM invoice WHERE budget_id = %(id)s AND isPaid = 1;',
+            {'id': event_id})
+        data = cursor.fetchone()
+        return data[0]
+
+    @staticmethod
+    def getTotalCountInvoice(event_id):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT count(isPaid) FROM invoice WHERE budget_id = %(id)s;',
             {'id': event_id})
         data = cursor.fetchone()
         return data[0]
@@ -567,7 +578,24 @@ class Task:
         allTasks = []
         for i in data:
             allTasks.append(
-                {'event_id': i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dueDate': i[4], 'status': i[5],
+                {'event_id': i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dueDate': i[4], 'status':  Misc.convert_status(i[5]),
+                 'assignedTo': User.get_name_id(i[6])})
+        if allTasks == []:
+            return [{'event_id': event_id}]
+        return allTasks
+
+    # retrieves the tasks for a given event instance and puts them in a dictionary
+    @staticmethod
+    def getTasksNotComplete(event_id):
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT event.id, task.id, task.priority, task.name, task.dateDue, task.status, task.assignedTo FROM event.task JOIN event.event ON event_id = event.id WHERE event_id = %(id)s AND status = 0;',
+            {'id': event_id})
+        data = cursor.fetchall()
+        allTasks = []
+        for i in data:
+            allTasks.append(
+                {'event_id': i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dueDate': i[4], 'status':  Misc.convert_status(i[5]),
                  'assignedTo': User.get_name_id(i[6])})
         if allTasks == []:
             return [{'event_id': event_id}]
@@ -651,13 +679,17 @@ class Ticket:
     def createTickets(numTicketsTotal, numSections, numSeatsPerSection, isSold, price, event_id):
         conn = mysql.connection
         cursor = conn.cursor()
+        query = "START TRANSACTION; "
         if(numTicketsTotal == ""):
-            query = "START TRANSACTION; "
             for i in range(int(numSections)):
                 for j in range(int(numSeatsPerSection)):
                     query += "INSERT INTO ticket (price, section, seat_num, isSold, event_id) VALUES (" + price + ", " + str(i) + ", " + str(j) + ", " + str(isSold) + ", " + str(event_id) + "); "
-            query += " COMMIT;"
-            cursor.execute(query)
+        else:
+            for i in range(int(numTicketsTotal)):
+                query += "INSERT INTO ticket (price, isSold, event_id) VALUES (" + price + ", "\
+                         + str(isSold) + ", " + str(event_id) + "); "
+        query += " COMMIT;"
+        cursor.execute(query)
 
 
 
@@ -773,6 +805,13 @@ class Vendor:
         data = cursor.fetchall()
         return data
 
+    @staticmethod
+    def getVendorName(vendor_id):
+        cursor = mysql.connection.cursor()
+        cursor.execute('SELECT name FROM event.vendor WHERE id = %(vendor_id)s;', {'vendor_id' : vendor_id})
+        data = cursor.fetchone()
+        return data[0]
+
 class Misc:
     @staticmethod
     def convert_to_bool(value):
@@ -787,6 +826,16 @@ class Misc:
             return ""
         else:
             return value
+
+    @staticmethod
+    def convert_status(value):
+        print(value)
+        if value == "2":
+            return "Complete"
+        elif value == "1":
+            return "Pending"
+        else:
+            return "Not complete"
 
 if __name__ == '__main__':
     app.debug = True
