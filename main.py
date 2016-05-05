@@ -589,7 +589,7 @@ class Task:
     def getTasksNotComplete(event_id):
         cursor = mysql.connection.cursor()
         cursor.execute(
-            'SELECT event.id, task.id, task.priority, task.name, task.dateDue, task.status, task.assignedTo FROM event.task JOIN event.event ON event_id = event.id WHERE event_id = %(id)s AND status = 0;',
+            'SELECT event.id, task.id, task.priority, task.name, task.dateDue, task.status, task.assignedTo FROM event.task JOIN event.event ON event_id = event.id WHERE event_id = %(id)s AND (status = 0 OR status = 1);',
             {'id': event_id})
         data = cursor.fetchall()
         allTasks = []
@@ -829,7 +829,6 @@ class Misc:
 
     @staticmethod
     def convert_status(value):
-        print(value)
         if value == "2":
             return "Complete"
         elif value == "1":

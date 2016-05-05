@@ -13,10 +13,10 @@
         <div class="form-group">
             <dl>
                 {{ form.hidden_tag() }}
-                {{ render_field(form.name, class="form-control") }}
-                {{ render_field(form.priority, class="form-control") }}
+                {{ render_field(form.name, class="form-control", autocomplete="off") }}
+                {{ render_field(form.priority, class="form-control", autocomplete="off") }}
                 {{ render_field(form.status, class="form-control") }}
-                {{ render_field(form.dueDate, class="form-control") }}
+                {{ render_field(form.dueDate, class="form-control", autocomplete="off") }}
                 {{ render_field(form.assignTo, class="form-control") }}
             </dl>
             <input type=submit value=submit class="btn btn-success">

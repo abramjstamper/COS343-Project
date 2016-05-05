@@ -1,5 +1,5 @@
 from flask.ext.wtf import Form
-from wtforms import TextField, DateTimeField, PasswordField, validators, BooleanField, ValidationError
+from wtforms import TextField, DateTimeField, PasswordField, validators, BooleanField, ValidationError, SelectField
 #from flask.wtf import Form, TextField, PasswordField, validators
 from datetime import datetime, date
 from wtforms_components import NumberInput, DateRange, Email, EmailField, DecimalField
@@ -20,7 +20,7 @@ class NewTask(Form):
     name = TextField('Task Name')
     dueDate = DateTimeField('Due Date')
     priority = TextField('Priority')
-    status = TextField('Status')
+    status = SelectField('Status', choices=[(0, 'Not Complete'), (1, 'Pending'), (2, 'Complete')], coerce=int)
     assignTo = TextField('User Assigned To')
 
 class Login(Form):

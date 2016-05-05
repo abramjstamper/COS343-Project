@@ -14,10 +14,10 @@
         <div class="form-group">
             <dl>
                 {{ form.hidden_tag() }}
-                {{ render_field(form.name) }}
-                {{ render_field(form.email) }}
-                {{ render_field(form.password) }}
-                {{ render_field(form.password_conf) }}
+                {{ render_field(form.name, autocomplete="off") }}
+                {{ render_field(form.email, autocomplete="off") }}
+                {{ render_field(form.password, autocomplete="off") }}
+                {{ render_field(form.password_conf, autocomplete="off") }}
             </dl>
             <input type=submit>
         </div>

@@ -13,12 +13,12 @@
         <div class="form-group">
             <dl>
                 {{ form.hidden_tag() }}
-                {{ render_field(form.name, class="form-control") }}
-                {{ render_field(form.description, class="form-control") }}
-                {{ render_field(form.date_start, class="form-control") }}
-                {{ render_field(form.date_end, class="form-control") }}
-                {{ render_field(form.setupStart, class="form-control") }}
-                {{ render_field(form.teardownEnd, class="form-control") }}
+                {{ render_field(form.name, class="form-control", autocomplete="off") }}
+                {{ render_field(form.description, class="form-control", autocomplete="off") }}
+                {{ render_field(form.date_start, class="form-control", autocomplete="off") }}
+                {{ render_field(form.date_end, class="form-control", autocomplete="off") }}
+                {{ render_field(form.setupStart, class="form-control", autocomplete="off") }}
+                {{ render_field(form.teardownEnd, class="form-control", autocomplete="off") }}
             </dl>
             <input type=submit value=submit class="btn btn-success">
         </div>
