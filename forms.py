@@ -20,8 +20,8 @@ class NewTask(Form):
     name = TextField('Task Name')
     dueDate = DateTimeField('Due Date')
     priority = TextField('Priority')
-    status = SelectField('Status', choices=[(0, 'Not Complete'), (1, 'Pending'), (2, 'Complete')], coerce=int)
-    assignTo = TextField('User Assigned To')
+    status = SelectField('Status', coerce=int)
+    assignTo = SelectField('Assigned To')
 
 class Login(Form):
     email = EmailField('Email', validators=[validators.Email(), validators.DataRequired()])

@@ -41,11 +41,6 @@ def budget(event_id):
 def newInvoice(event_id):
     form = NewInvoice(request.form)
     current_budget = Budget.loadBudget(event_id)
-    # if request.method == 'GET':
-    #     form.total.data = current_budget.invoices[current_budget.id].total
-    #     form.description.data = current_budget.invoices[current_budget.id].description
-    #     form.isPaid.data = current_budget.invoices[current_budget.id].isPaid
-    #     form.vendor_id.data = current_budget.invoices[current_budget.id].vendor_id
     if request.method == 'POST' and form.validate():
         current_budget.createInvoice(form.total.data, form.description.data, form.isPaid.data, form.vendor_id.data)
         flash("New Invoice Created")
@@ -201,21 +196,23 @@ def unauthorized_handler():
 @flask_login.login_required
 def editTask(event_id, task_id):
     form = NewTask(request.form)
+    current_event = Event.loadEvent(event_id)
+    form.assignTo.choices = User.userChoices()
+    form.status.choices = [(0, 'Not Complete'), (1, 'Pending'), (2, 'Complete')]
     if request.method == 'GET':
-        current_event = Event.loadEvent(event_id)
         current_task = Task.loadTask(task_id)
         form.priority.data = current_task.priority
         form.name.data = current_task.name
         form.dueDate.data = current_task.dateDue
-        form.status.data = current_task.status
+        #bug assigning the inncorrect status
+        form.status.data = int(current_task.status)
         form.assignTo.data = current_task.assignedTo
     if request.method == 'POST' and form.validate():
         current_task = Task.updateTask(task_id, form.priority.data, form.name.data, form.dueDate.data,
                                        form.status.data,
                                        form.assignTo.data, event_id)
         flash(current_task.name + ' Updated')
-        updatedTask_id = int(task_id)
-        return redirect(url_for('task', event_id=event_id))
+        return redirect(url_for('task', event_id=current_event.id))
     return render_template('task/edit.html', form=form)
 
 
@@ -225,6 +222,8 @@ def editTask(event_id, task_id):
 def newTask(event_id):
     current_event = Event.loadEvent(event_id)
     form = NewTask(request.form)
+    form.status.choices = [(0, 'Not Complete'), (1, 'Pending'), (2, 'Complete')]
+    form.assignTo.choices = User.userChoices()
     if request.method == 'POST' and form.validate():
         thisNewTask = Task.createTaskForEvent(form.name.data, form.dueDate.data, form.priority.data, form.status.data,
                                               form.assignTo.data, event_id)
@@ -764,6 +763,15 @@ class User(flask_login.UserMixin):
             newUser['is_active'] = i[5]
             data[i[2]] = newUser
         return data
+
+    @staticmethod
+    def userChoices():
+        users = User.getUsers()
+        response = []
+        for user in users:
+            response.append((user, User.get_name_id(user)))
+        response.remove(('admin@admin.com', 'admin'))
+        return response
 
     @staticmethod
     def createUser(name, email, password, password_conf):
