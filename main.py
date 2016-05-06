@@ -48,6 +48,7 @@ def newInvoice(event_id):
     #     form.vendor_id.data = current_budget.invoices[current_budget.id].vendor_id
     if request.method == 'POST' and form.validate():
         current_budget.createInvoice(form.total.data, form.description.data, form.isPaid.data, form.vendor_id.data)
+        flash("New Invoice Created")
         return redirect(url_for('budget', event_id=event_id))
     return render_template('budget/new.html', form=form)
 
