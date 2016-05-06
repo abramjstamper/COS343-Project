@@ -787,15 +787,21 @@ class Vendor:
     phone = ""
     address = ""
     email = ""
+    zip = ""
+    state = ""
+    city = ""
     # array of invoices - to be implemented
     invoices = []
 
-    def __init__(self, id, name, phone, address, email):
+    def __init__(self, id, name, phone, address, email, city, state, zip):
         self.id = id
         self.name = name
         self.phone = phone
         self.address = address
         self.email = email
+        self.city = city
+        self.state = state
+        self.zip = zip
 
     # return all vendors
     @staticmethod

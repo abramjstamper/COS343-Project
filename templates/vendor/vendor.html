@@ -14,6 +14,9 @@
                 <th>Name</th>
                 <th>Phone</th>
                 <th>Address</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Zip Code</th>
                 <th>Email</th>
             </tr>
         {% for vendor in response %}
@@ -22,6 +25,9 @@
                 <td>{{ vendor[1] }}</td>
                 <td>{{ vendor[2] }}</td>
                 <td>{{ vendor[3] }}</td>
+                <td>{{ vendor[5] }}</td>
+                <td>{{ vendor[6] }}</td>
+                <td>{{ vendor[7] }}</td>
                 <td>{{ vendor[4] }}</td>
             </tr>
         {% endfor %}
