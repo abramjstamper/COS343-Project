@@ -60,8 +60,8 @@ def newInvoice(event_id):
 @flask_login.login_required
 def editEvent(event_id):
     form = NewEvent(request.form)
+    current_event = Event.loadEvent(event_id)
     if request.method == 'GET':
-        current_event = Event.loadEvent(event_id)
         form.name.data = current_event.name
         form.description.data = current_event.description
         form.date_start.data = current_event.date_start
@@ -72,9 +72,8 @@ def editEvent(event_id):
         thisNewEvent = Event.updateEvent(event_id, form.name.data, form.description.data, form.date_start.data,
                                          form.date_end.data,
                                          form.setupStart.data, form.teardownEnd.data)
-        flash('Event ' + str(event_id) + ' Updated')
-        newEvent_id = int(event_id)
-        return redirect(url_for('event_show', event_id=event_id))
+        flash(current_event.name + ' Updated')
+        return redirect(url_for('event', event_id=current_event.id))
     return render_template('event/edit.html', current_event=current_event, form=form)
 
 
@@ -210,10 +209,10 @@ def editTask(event_id, task_id):
         form.status.data = current_task.status
         form.assignTo.data = current_task.assignedTo
     if request.method == 'POST' and form.validate():
-        thisUpdatedTask = Task.updateTask(task_id, form.priority.data, form.name.data, form.dueDate.data,
-                                          form.status.data,
-                                          form.assignTo.data, event_id)
-        flash('Task ' + str(task_id) + ' Updated')
+        current_task = Task.updateTask(task_id, form.priority.data, form.name.data, form.dueDate.data,
+                                       form.status.data,
+                                       form.assignTo.data, event_id)
+        flash(current_task.name + ' Updated')
         updatedTask_id = int(task_id)
         return redirect(url_for('task', event_id=event_id))
     return render_template('task/edit.html', form=form)
