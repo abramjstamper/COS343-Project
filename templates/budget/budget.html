@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Budget for Event ID {{ event_id }}{% endblock %}
+{% block title %}Budget for Event {{ current_event.name }}{% endblock %}
 
 {% block head %}
     {{ super() }}
 {% endblock %}
 
 {% block content %}
-        <h1>{{ self.title() }}</h1>
+        <h1>Budget for <a href="/event/{{ current_event.id }}">{{ current_event.name }}</a></h1>
 
 <a class="btn btn-default" href="{{ request.path }}/new">New Invoice For Event</a>
 
@@ -17,19 +17,25 @@
                 <th>Has been paid?</th>
                 <th>Vendor ID</th>
             </tr>
-        {% for invoice in response %}
+        {% for invoice in invoices %}
             <tr>
-                <td>{{ response[invoice].total }}</td>
-                <td>{{ response[invoice].description }}</td>
-                <td>{{ response[invoice].isPaid }}</td>
-                <td>{{ response[invoice].vendor_id }}</td>
+                <td>{{ invoices[invoice].total }}</td>
+                <td>{{ invoices[invoice].description }}</td>
+                <td>{{ invoices[invoice].isPaid }}</td>
+                <td>{{ invoices[invoice].vendor_id }}</td>
             </tr>
         {% endfor %}
             <tr>
-                <td>{{ totalExpense }}</td>
-                <td><strong>Total Expenses</strong></td>
-                <td>{{ totalSold }}</td>
-                <td><strong>Total Paid</strong></td>
+                <td class="text-danger">{{ current_budget.totalExpenses }}</td>
+                <td class="text-danger">{{ current_budget.totalCountNotPaid }}</td>
+                <td class="text-success">{{ current_budget.totalCountPaid }}</td>
+                <td>{{ current_budget.totalInvoiceCount }}</td>
+            </tr>
+            <tr>
+                <td><strong class="text-danger">Total Expenses</strong></td>
+                <td><strong class="text-danger">Total Count Not Paid</strong></td>
+                <td><strong class="text-success">Total Paid</strong></td>
+                <td><strong>Total Invoice Count</strong></td>
             </tr>
         </table>
 {% endblock %}

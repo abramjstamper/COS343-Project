@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Ticket for Event ID {{response[0].event_id}}{% endblock %}
+{% block title %}Tickets for {{ current_event.name }}{% endblock %}
 
 {% block head %}
     {{ super() }}
 {% endblock %}
 
 {% block content %}
-        <h1>{{ self.title() }}</h1>
+        <h1>Ticekts for <a href="/event/{{ current_event.id }}">{{ current_event.name }}</a></h1>
 
         <a class="btn btn-default" href="{{ request.path }}/new">New Ticket</a>
 

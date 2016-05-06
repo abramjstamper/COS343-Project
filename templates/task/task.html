@@ -1,15 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Tasks for Event ID {{response[0].event_id}}{% endblock %}
+{% block title %}Tasks for Event {{current_event.name}}{% endblock %}
 
 {% block head %}
     {{ super() }}
 {% endblock %}
 
 {% block content %}
-        <h1>{{ self.title() }}</h1>
-
+<div class="row">
+        <h1>Tasks for <a href="/event/{{ current_event.id }} ">{{ current_event.name }}</a></h1>
         <a class="btn btn-default" href="{{ request.path }}/new">New Task For Event</a>
-
+</div>
+    <div class="row">
         <table class="table table-bordered table-striped">
             <tr>
                 <th>Name</th>
@@ -28,4 +29,5 @@
             </tr>
         {% endfor %}
         </table>
+            </div>
 {% endblock %}

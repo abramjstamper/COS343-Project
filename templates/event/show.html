@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Event {{ response['event'].name}} Information{% endblock %}
+{% block title %}{{ current_event.name}}{% endblock %}
 
 {% block head %}
     {{ super() }}
@@ -15,10 +15,10 @@
                     aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <strong>Warning!</strong> You cannot undo this action. Are you sure you want to delete the event and all its associated data?
             <div class="clearfix"></div>
-            <a href="/event/{{ response['event'].id }}/delete" class="btn btn-success" >Yes! Delete</a>
+            <a href="/event/{{ current_event.id }}/delete" class="btn btn-success" >Yes! Delete</a>
         </div>
 
-        <h2><a href="/event/{{response['event'].id}}/edit">General</a></h2>
+        <h2><a href="/event/{{current_event.id}}/edit">General</a></h2>
         <table class="table table-bordered table-striped">
             <tr>
                 <th>Name</th>
@@ -29,16 +29,20 @@
                 <th>Teardown Ending Time</th>
             </tr>
             <tr>
-                <td>{{ response['event'].name}}</td>
-                <td>{{ response['event'].description }}</td>
-                <td>{{ response['event'].date_start }}</td>
-                <td>{{ response['event'].date_end }}</td>
-                <td>{{ response['event'].setupStart }}</td>
-                <td>{{ response['event'].teardownEnd }}</td>
+                <td>{{ current_event.name}}</td>
+                <td>{{ current_event.description }}</td>
+                <td>{{ current_event.date_start }}</td>
+                <td>{{ current_event.date_end }}</td>
+                <td>{{ current_event.setupStart }}</td>
+                <td>{{ current_event.teardownEnd }}</td>
             </tr>
         </table>
 
-        <h2><a href="/event/{{response['event'].id}}/task">Tasks</a></h2>
+
+
+
+
+        <h2><a href="/event/{{current_event.id}}/task">Tasks</a></h2>
         <table class="table table-bordered table-striped">
             <tr>
                 <th>Name</th>
@@ -47,7 +51,7 @@
                 <th>Status</th>
                 <th>Assigned To</th>
             </tr>
-        {% for task in response['task'] %}
+        {% for task in current_tasks %}
             <tr>
                 <td><a href="/event/{{task.event_id}}/task/{{task.id}}/edit">{{ task.name }}</a></td>
                 <td>{{ task.dueDate }}</td>
@@ -58,7 +62,7 @@
         {% endfor %}
         </table>
 
-        <h2><a href="/event/{{response['event'].id}}/budget">Budget</a></h2>
+        <h2><a href="/event/{{current_event.id}}/budget">Budget</a></h2>
          <table class="table table-bordered table-striped">
             <tr>
                 <th>Total Expenses</th>
@@ -67,14 +71,14 @@
                 <th>Number Invoices</th>
             </tr>
             <tr>
-                <td class="text-danger">{{ totalExpense }}</td>
-                <td class="text-success">{{ totalCountPaid }}</td>
-                <td class="text-danger">{{ totalCountNotPaid }}</td>
-                <td class="text-primary">{{ totalCountInvoice }}</td>
+                <td class="text-danger">{{ current_budget.totalExpenses }}</td>
+                <td class="text-success">{{ current_budget.totalCountPaid }}</td>
+                <td class="text-danger">{{ current_budget.totalCountNotPaid }}</td>
+                <td>{{ current_budget.totalInvoiceCount }}</td>
             </tr>
         </table>
 
-        <h2><a href="/event/{{response['event'].id}}/ticket">Ticket</a></h2>
+        <h2><a href="/event/{{current_event.id}}/ticket">Ticket</a></h2>
         <table class="table table-bordered table-striped">
             <tr>
                 <th>Price Total Sold</th>
@@ -86,7 +90,7 @@
                 <td class="text-success">{{ totalIncome }}</td>
                 <td class="text-success">{{ totalTixSold }}</td>
                 <td class="text-danger">{{ totalTixNotSold }}</td>
-                <td class="text-primary">{{ totalTix }}</td>
+                <td>{{ totalTix }}</td>
             </tr>
         </table>
  {% endblock %}

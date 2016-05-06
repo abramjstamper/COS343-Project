@@ -31,11 +31,10 @@ login_manager.init_app(app)
 @app.route('/event/<int:event_id>/budget')
 @flask_login.login_required
 def budget(event_id):
+    current_event = Event.loadEvent(event_id)
     current_budget = Budget.loadBudget(event_id)
-    response = current_budget.getAllInvoices()
-    totalSold = Budget.getTotalCountPaid(current_budget.id)
-    totalExpense = Budget.getTotalExpenses(current_budget.id)
-    return render_template('budget/budget.html', event_id=event_id, response=response, totalSold=totalSold, totalExpense=totalExpense)
+    invoices = current_budget.getAllInvoices()
+    return render_template('budget/budget.html', current_event=current_event, current_budget=current_budget, invoices=invoices)
 
 @app.route('/event/<int:event_id>/budget/new', methods=['GET', 'POST'])
 @flask_login.login_required
@@ -76,7 +75,7 @@ def editEvent(event_id):
         flash('Event ' + str(event_id) + ' Updated')
         newEvent_id = int(event_id)
         return redirect(url_for('event_show', event_id=event_id))
-    return render_template('event/edit.html', form=form)
+    return render_template('event/edit.html', current_event=current_event, form=form)
 
 
 # returns all events from the database - not user specific (yet)
@@ -92,23 +91,17 @@ def all_events():
 @flask_login.login_required
 def event(event_id):
     response = {}
-    response['event'] = Event.loadEvent(event_id)
+    current_event = Event.loadEvent(event_id)
     current_budget = Budget.loadBudget(event_id)
-    totalCountPaid = Budget.getTotalCountPaid(current_budget.id)
-    totalCountNotPaid = Budget.getTotalCountNotPaid(current_budget.id)
-    totalExpense = Budget.getTotalExpenses(current_budget.id)
-    totalCountInvoice = Budget.getTotalCountInvoice(current_budget.id)
-    response['task'] = Task.getTasksNotComplete(event_id)
+    current_tasks = Task.getTasksNotComplete(event_id)
     totalTixSold = Ticket.getTotalCountSold(event_id)
     totalIncome = Ticket.getTotalPriceSold(event_id)
     totalTix = Ticket.getTotalCount(event_id)
     totalTixNotSold = Ticket.getTotalCountNotSold(event_id)
 
-    return render_template('event/show.html', response=response, budget=budget,
-                           totalCountNotPaid=totalCountNotPaid, totalCountPaid=totalCountPaid,
-                           totalExpense=totalExpense, totalIncome=totalIncome, totalTixSold=totalTixSold,
-                           totalTix= totalTix, totalTixNotSold=totalTixNotSold,
-                           totalCountInvoice=totalCountInvoice)
+    return render_template('event/show.html', current_event=current_event, current_tasks=current_tasks, current_budget=current_budget,
+                           totalIncome=totalIncome, totalTixSold=totalTixSold,
+                           totalTix= totalTix, totalTixNotSold=totalTixNotSold)
 
 @app.route('/event/<int:event_id>/delete')
 @flask_login.login_required
@@ -246,7 +239,7 @@ def newTask(event_id):
 def task(event_id):
     current_event = Event.loadEvent(event_id)
     response = Task.getTasksForEvent(event_id)
-    return render_template('task/task.html', response=response)
+    return render_template('task/task.html', response=response, current_event=current_event)
 
 
 ##
@@ -261,7 +254,7 @@ def ticket(event_id):
     response = Ticket.getAllTickets(event_id)
     response.append({"totalSold": Ticket.getTotalCountSold(event_id)})
     response.append({"totalSold": Ticket.getTotalPriceSold(event_id)})
-    return render_template('ticket/ticket.html', response=response)
+    return render_template('ticket/ticket.html', current_event=current_event, response=response)
 
 @app.route('/event/<int:event_id>/ticket/new', methods=['GET', 'POST'])
 @flask_login.login_required
@@ -308,6 +301,11 @@ class Budget:
     id = -1
     event_id = -1
     invoices = []
+    totalCountPaid = -1
+    totalCountNotPaid = -1
+    totalExpenses = -1
+    totalInvoiceCount = -1
+
 
     def __init__(self, id, event_id):
         self.id = id
@@ -322,7 +320,12 @@ class Budget:
         if data != None:
             id = data[0]
             event_id = data[1]
-            return cls(id, event_id)
+            self = cls(id, event_id)
+            self.totalCountPaid = self.getTotalCountPaid()
+            self.totalCountNotPaid = self.getTotalCountNotPaid()
+            self.totalExpenses = self.getTotalExpenses()
+            self.totalInvoiceCount = self.getTotalCountInvoice()
+            return self
         #populate self.invoices
         return cls(-1, key)
 
@@ -358,39 +361,35 @@ class Budget:
         self.invoices = data
         return data
 
-    @staticmethod
-    def getTotalExpenses(event_id):
+    def getTotalExpenses(self):
         cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT SUM(total) FROM invoice WHERE budget_id = %(id)s;',
-            {'id': event_id})
+            {'id': self.id})
         data = cursor.fetchone()
         return data[0]
 
-    @staticmethod
-    def getTotalCountPaid(event_id):
+    def getTotalCountPaid(self):
         cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT count(isPaid) FROM invoice WHERE budget_id = %(id)s AND isPaid = 1;',
-            {'id': event_id})
+            {'id': self.id})
         data = cursor.fetchone()
         return data[0]
 
-    @staticmethod
-    def getTotalCountInvoice(event_id):
+    def getTotalCountInvoice(self):
         cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT count(isPaid) FROM invoice WHERE budget_id = %(id)s;',
-            {'id': event_id})
+            {'id': self.id})
         data = cursor.fetchone()
         return data[0]
 
-    @staticmethod
-    def getTotalCountNotPaid(event_id):
+    def getTotalCountNotPaid(self):
         cursor = mysql.connection.cursor()
         cursor.execute(
             'SELECT count(isPaid) FROM invoice WHERE budget_id = %(id)s AND isPaid = 0;',
-            {'id': event_id})
+            {'id': self.id})
         data = cursor.fetchone()
         return data[0]
 
@@ -431,6 +430,9 @@ class Event():
         self.date_end = date_end
         self.setupStart = setupStart
         self.teardownEnd = teardownEnd
+
+    def getname(self):
+        return self.name
 
     # return all events
     @staticmethod
@@ -598,7 +600,7 @@ class Task:
                 {'event_id': i[0], 'id': i[1], 'priority': i[2], 'name': i[3], 'dueDate': i[4], 'status':  Misc.convert_status(i[5]),
                  'assignedTo': User.get_name_id(i[6])})
         if allTasks == []:
-            return [{'event_id': event_id}]
+            return [{'priority': 'All Tasks Completed'}]
         return allTasks
 
 
