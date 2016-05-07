@@ -86,7 +86,6 @@ def all_events():
 @app.route('/event/<int:event_id>')
 @flask_login.login_required
 def event(event_id):
-    response = {}
     current_event = Event.loadEvent(event_id)
     current_budget = Budget.loadBudget(event_id)
     current_tasks = Task.getTasksNotComplete(event_id)
@@ -171,7 +170,7 @@ def login():
 @app.route('/protected')
 @flask_login.login_required
 def protected():
-    flash("User " + flask_login.current_user.get_name() + " successfully logged In!")
+    flash("Welcome " + flask_login.current_user.get_name() + "!")
     return redirect(url_for("all_events"))
 
 
