@@ -41,6 +41,7 @@ def budget(event_id):
 def newInvoice(event_id):
     form = NewInvoice(request.form)
     current_budget = Budget.loadBudget(event_id)
+    form.vendor_id.choices = Vendor.getVendorChoices()
     if request.method == 'POST' and form.validate():
         current_budget.createInvoice(form.total.data, form.description.data, form.isPaid.data, form.vendor_id.data)
         flash("New Invoice Created")
@@ -204,7 +205,6 @@ def editTask(event_id, task_id):
         form.priority.data = current_task.priority
         form.name.data = current_task.name
         form.dueDate.data = current_task.dateDue
-        #bug assigning the inncorrect status
         form.status.data = int(current_task.status)
         form.assignTo.data = current_task.assignedTo
     if request.method == 'POST' and form.validate():
@@ -827,6 +827,17 @@ class Vendor:
         cursor.execute('SELECT name FROM event.vendor WHERE id = %(vendor_id)s;', {'vendor_id' : vendor_id})
         data = cursor.fetchone()
         return data[0]
+
+    @staticmethod
+    def getVendorChoices():
+        cursor = mysql.connection.cursor()
+        cursor.execute('SELECT id FROM event.vendor;')
+        data = cursor.fetchall()
+        response = []
+        for i in data:
+            response.append((str(i[0]), Vendor.getVendorName(i)))
+        print(response)
+        return response
 
 class Misc:
     @staticmethod

@@ -37,7 +37,7 @@ class NewInvoice(Form):
     total = TextField('Total', validators=[validators.DataRequired()])
     description = TextField('Description')
     isPaid = BooleanField('Has been paid?')
-    vendor_id = TextField('Vendor ID', validators=[validators.DataRequired()])
+    vendor_id = SelectField('Vendor')
 
 class NewTicket(Form):
     numTicketsTotal = TextField('Number of Total Tickets Being Sold')
