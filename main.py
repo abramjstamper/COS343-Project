@@ -357,11 +357,10 @@ class Budget:
         params = {"total": total, "description": description, "isPaid": isPaid, "vendor_id": vendor_id,
                   "budget_id": self.id, "invoice_id": invoice_id}
         query = "UPDATE invoice SET total= %(total)s, description= %(description)s, isPaid= %(isPaid)s, vendor_id= %(vendor_id)s, budget_id= %(budget_id)s WHERE id= %(invoice_id)s;"
-        print(params)
         conn = mysql.connection
         cursor = conn.cursor()
         # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
-        print("query " + str(cursor.execute(query, params)))
+        cursor.execute(query, params)
         conn.commit()
 
         newInvoice = {}
@@ -459,9 +458,10 @@ class Budget:
         # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
         cursor.execute(query, params)
         conn.commit()
-        params["id"] = cursor.lastrowid
+        id = cursor.lastrowid
         params["budget_id"] = self.id
-        self.invoices.append(params)
+        params["event_id"] = self.event_id
+        self.invoices[id] = params
         return params
 
 
