@@ -10,7 +10,6 @@
 
         <table class="table table-bordered table-striped">
             <tr>
-                <th>ID</th>
                 <th>Dashboard</th>
                 <th>Name</th>
                 <th>Description</th>
@@ -24,7 +23,6 @@
             </tr>
         {% for event in response %}
             <tr>
-                <td>{{ event[0] }}</td>
                 <td><a href="/event/{{event[0]}}">Dashboard</a></td>
                 <td>{{ event[1] }}</td>
                 <td>{{ event[4] }}</td>

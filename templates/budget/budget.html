@@ -20,7 +20,7 @@
         {% for invoice in invoices %}
             <tr>
                 <td>{{ invoices[invoice].total }}</td>
-                <td>{{ invoices[invoice].description }}</td>
+                <td><a href="/event/{{ current_event.id }}/budget/{{ invoice }}/edit">{{ invoices[invoice].description }}</a></td>
                 <td>{{ invoices[invoice].isPaid }}</td>
                 <td>{{ invoices[invoice].vendor_id }}</td>
             </tr>

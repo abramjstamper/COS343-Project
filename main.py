@@ -33,7 +33,7 @@ login_manager.init_app(app)
 def budget(event_id):
     current_event = Event.loadEvent(event_id)
     current_budget = Budget.loadBudget(event_id)
-    invoices = current_budget.getAllInvoices()
+    invoices = current_budget.convert_invoice_to_output()
     return render_template('budget/budget.html', current_event=current_event, current_budget=current_budget, invoices=invoices)
 
 @app.route('/event/<int:event_id>/budget/new', methods=['GET', 'POST'])
@@ -47,6 +47,32 @@ def newInvoice(event_id):
         flash("New Invoice Created")
         return redirect(url_for('budget', event_id=event_id))
     return render_template('budget/new.html', form=form)
+
+@app.route('/event/<int:event_id>/budget/<int:invoice_id>/edit', methods=['GET', 'POST'])
+@flask_login.login_required
+def editInvoice(event_id, invoice_id):
+    #rendor's form
+    form = NewInvoice(request.form)
+    form.vendor_id.choices = Vendor.getVendorChoices()
+
+    #loads budget/invoice
+    current_event = Event.loadEvent(event_id)
+    current_budget = Budget.loadBudget(event_id)
+    current_invoice = current_budget.getAllInvoices()[invoice_id]
+    if request.method == 'GET':
+        #puts values into the form
+        form.description.data = current_invoice['description']
+        form.isPaid.data = current_invoice['isPaid']
+        form.total.data = current_invoice['total']
+        form.vendor_id.data = current_invoice['vendor_id']
+
+    if request.method == 'POST' and form.validate():
+        #self, total, description, isPaid, vendor_id, invoice_id
+        current_invoice = current_budget.updateInvoice(form.total.data, form.description.data, form.isPaid.data, form.vendor_id.data, invoice_id)
+        flash(current_invoice['description'] + " Updated")
+        return redirect(url_for('budget', event_id=event_id))
+
+    return render_template('budget/edit.html', form=form)
 
 ##
 ## Event
@@ -323,9 +349,31 @@ class Budget:
             self.totalCountNotPaid = self.getTotalCountNotPaid()
             self.totalExpenses = self.getTotalExpenses()
             self.totalInvoiceCount = self.getTotalCountInvoice()
+            self.invoices = self.getAllInvoices()
             return self
-        #populate self.invoices
         return cls(-1, key)
+
+    def updateInvoice(self, total, description, isPaid, vendor_id, invoice_id):
+        params = {"total": total, "description": description, "isPaid": isPaid, "vendor_id": vendor_id,
+                  "budget_id": self.id, "invoice_id": invoice_id}
+        query = "UPDATE invoice SET total= %(total)s, description= %(description)s, isPaid= %(isPaid)s, vendor_id= %(vendor_id)s, budget_id= %(budget_id)s WHERE id= %(invoice_id)s;"
+        print(params)
+        conn = mysql.connection
+        cursor = conn.cursor()
+        # if it's 1 it's changed 1 thing in the table (adding one record) error code needed to catch exceptions
+        print("query " + str(cursor.execute(query, params)))
+        conn.commit()
+
+        newInvoice = {}
+        newInvoice['vendor_id'] = vendor_id
+        newInvoice['total'] = total
+        newInvoice['description'] = description
+        newInvoice['isPaid'] = isPaid
+        newInvoice['budget_id'] = self.id
+        newInvoice['event_id'] = self.event_id
+        self.invoices[invoice_id] = newInvoice
+        return newInvoice
+
 
     @classmethod
     def createBudget(cls, event_id):
@@ -349,14 +397,25 @@ class Budget:
         data = {}
         for i in cursor.fetchall():
             newInvoice = {}
-            newInvoice['vendor_id'] = Vendor.getVendorName(i[5])
+            newInvoice['vendor_id'] = i[5]
             newInvoice['total'] = i[1]
             newInvoice['description'] = i[2]
-            newInvoice['isPaid'] = Misc.convert_to_bool(i[3])
+            newInvoice['isPaid'] = i[3]
             newInvoice['budget_id'] = i[4]
             newInvoice['event_id'] = self.event_id
             data[i[0]] = newInvoice
         self.invoices = data
+        return data
+
+    def convert_invoice_to_output(self):
+        data = self.invoices
+        for i in self.invoices:
+            for j in self.invoices[i]:
+                if j == "vendor_id":
+                    current_vendor = Vendor.loadVendor(self.invoices[i][j])
+                    data[i][j] = current_vendor.name
+                elif j == "isPaid":
+                    data[i][j] = Misc.convert_to_bool(self.invoices[i][j])
         return data
 
     def getTotalExpenses(self):
@@ -812,6 +871,22 @@ class Vendor:
         self.state = state
         self.zip = zip
 
+    @classmethod
+    def loadVendor(cls, vendor_id):
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM vendor WHERE id = %(key)s;", {'key': vendor_id})
+        data = cur.fetchone()
+        id = data[0]
+        name = data[1]
+        phone = data[2]
+        address = data[3]
+        email = data[4]
+        city = data[5]
+        state = data[6]
+        zip = data[7]
+        return cls(id, name, phone, address, email, city, state, zip)
+
+
     # return all vendors
     @staticmethod
     def getAllVendors():
@@ -821,21 +896,14 @@ class Vendor:
         return data
 
     @staticmethod
-    def getVendorName(vendor_id):
-        cursor = mysql.connection.cursor()
-        cursor.execute('SELECT name FROM event.vendor WHERE id = %(vendor_id)s;', {'vendor_id' : vendor_id})
-        data = cursor.fetchone()
-        return data[0]
-
-    @staticmethod
     def getVendorChoices():
         cursor = mysql.connection.cursor()
         cursor.execute('SELECT id FROM event.vendor;')
         data = cursor.fetchall()
         response = []
         for i in data:
-            response.append((str(i[0]), Vendor.getVendorName(i)))
-        print(response)
+            current_vendor = Vendor.loadVendor(i)
+            response.append((current_vendor.id, current_vendor.name))
         return response
 
 class Misc:
