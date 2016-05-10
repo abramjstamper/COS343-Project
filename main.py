@@ -158,9 +158,10 @@ def redirect_to_login():
 @app.route('/user/new', methods=['GET', 'POST'])
 def newUser():
     form = NewUser(request.form)
+    users = User.getUsers()
     if request.method == 'POST' and form.validate():
         newUser = User.createUser(form.name.data, form.email.data, form.password.data, form.password_conf.data)
-        flash('New User Created')
+        flash(form.name.data +'\'s account created')
         return redirect(url_for('login'))
     return render_template('login/new.html', form=form)
 
